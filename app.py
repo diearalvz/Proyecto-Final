@@ -63,7 +63,7 @@ st.markdown(
 # ==========================
 st.markdown(
     """
-    <div class="titulo-principal">💰 FactuTrack</div>
+    <div class="titulo-principal">FactuTrack</div>
     <div class="subtitulo">De recibos a datos útiles con IA</div>
     """,
     unsafe_allow_html=True
