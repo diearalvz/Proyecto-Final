@@ -1,5 +1,6 @@
 streamlit
 google-generativeai>=0.5.0
 Pillow
+pandas
 altair
 sqlite3
