@@ -19,6 +19,7 @@ st.markdown(
         background-color: #0e0e0e;
         color: #FFD700;
     }
+    /* Botones */
     .stButton>button {
         background-color: #FFD700;
         color: #000;
@@ -26,10 +27,20 @@ st.markdown(
         border-radius: 8px;
         padding: 0.6em 1.2em;
     }
-    h1, h2, h3 {
-        color: #FFD700;
-        text-shadow: 0 0 10px #FFD700;
+    /* Título principal diferenciado */
+    h1 {
+        font-size: 3em !important;
+        color: #FFD700 !important;
+        text-align: center;
+        text-shadow: 0 0 20px #FFD700, 0 0 40px #FFA500;
+        font-weight: bold;
+        margin-bottom: 0.5em;
     }
+    /* Subtítulos */
+    h2, h3 {
+        color: #FFD700;
+    }
+    /* Métricas */
     .stMetric {
         background-color: #1a1a1a;
         border-radius: 10px;
@@ -44,7 +55,7 @@ st.markdown(
 # ==========================
 # TÍTULO Y DESCRIPCIÓN
 # ==========================
-st.title("FactuTrack")
+st.title("💰 FactuTrack")
 st.write("De recibos a datos útiles con IA")
 
 # ==========================
@@ -87,7 +98,6 @@ c.execute('''
 conn.commit()
 
 def guardar_factura(entidad, fecha, monto, categoria):
-    # Verificar duplicados
     c.execute('''
         SELECT * FROM facturas
         WHERE entidad=? AND fecha=? AND monto=?
@@ -109,7 +119,6 @@ def mostrar_historial():
     rows = c.fetchall()
     if rows:
         df = pd.DataFrame(rows, columns=["Entidad", "Fecha", "Monto", "Categoría"])
-        # Convertir monto a número si es posible
         try:
             df["Monto"] = df["Monto"].str.replace(".", "").str.replace(",", "").astype(float)
         except:
@@ -145,7 +154,7 @@ with col1:
                     texto = response.text.strip()
                     if texto.startswith("```"):
                         texto = texto.strip("`").replace("json", "").strip()
-                    datos = eval(texto)  # convierte el JSON en diccionario
+                    datos = eval(texto)
 
                     st.success("✅ Datos extraídos con éxito")
 
@@ -157,7 +166,6 @@ with col1:
                         st.metric("💵 Monto", datos["monto"])
                         st.metric("📂 Categoría", datos["categoria"])
 
-                    # Guardar en historial
                     guardar_factura(datos["entidad"], datos["fecha"], datos["monto"], datos["categoria"])
 
                 except Exception as e:
