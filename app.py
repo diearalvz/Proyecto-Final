@@ -26,13 +26,25 @@ st.markdown(
         border-radius: 8px;
         padding: 0.6em 1.2em;
     }
-    h1 {
-        font-size: 3em !important;
-        color: #FFD700 !important;
+    /* Título principal diferenciado */
+    .titulo-principal {
+        font-size: 3em;
+        color: #FFD700;
         text-align: center;
         text-shadow: 0 0 20px #FFD700, 0 0 40px #FFA500;
         font-weight: bold;
-        margin-bottom: 0.5em;
+        margin-bottom: 0.1em;
+        font-family: 'Montserrat', sans-serif;
+    }
+    /* Subtítulo elegante */
+    .subtitulo {
+        font-size: 1.5em;
+        color: #FFD700;
+        text-align: center;
+        font-style: italic;
+        font-family: 'Georgia', serif;
+        margin-top: 0;
+        margin-bottom: 1em;
     }
     h2, h3 {
         color: #FFD700;
@@ -49,10 +61,15 @@ st.markdown(
 )
 
 # ==========================
-# TÍTULO Y DESCRIPCIÓN
+# TÍTULO Y SUBTÍTULO
 # ==========================
-st.title("💰 FactuTrack")
-st.write("De recibos a datos útiles con IA")
+st.markdown(
+    """
+    <div class="titulo-principal">💰 FactuTrack</div>
+    <div class="subtitulo">De recibos a datos útiles con IA</div>
+    """,
+    unsafe_allow_html=True
+)
 
 # ==========================
 # CONFIGURACIÓN DE LA API
