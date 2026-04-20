@@ -26,7 +26,6 @@ st.markdown(
         border-radius: 8px;
         padding: 0.6em 1.2em;
     }
-    /* Título principal diferenciado */
     .titulo-principal {
         font-size: 3em;
         color: #FFD700;
@@ -36,7 +35,6 @@ st.markdown(
         margin-bottom: 0.1em;
         font-family: 'Montserrat', sans-serif;
     }
-    /* Subtítulo elegante */
     .subtitulo {
         font-size: 1.5em;
         color: #FFD700;
@@ -65,7 +63,7 @@ st.markdown(
 # ==========================
 st.markdown(
     """
-    <div class="titulo-principal">FactuTrack</div>
+    <div class="titulo-principal">💰 FactuTrack</div>
     <div class="subtitulo">De recibos a datos útiles con IA</div>
     """,
     unsafe_allow_html=True
@@ -128,12 +126,11 @@ def guardar_factura(entidad, fecha, monto, categoria):
         st.success("✅ Factura guardada en el historial.")
 
 def mostrar_historial():
-    c.execute("SELECT entidad, fecha, monto, categoria FROM facturas")
+    c.execute("SELECT id, entidad, fecha, monto, categoria FROM facturas")
     rows = c.fetchall()
     if rows:
-        df = pd.DataFrame(rows, columns=["Entidad", "Fecha", "Monto", "Categoría"])
+        df = pd.DataFrame(rows, columns=["ID", "Entidad", "Fecha", "Monto", "Categoría"])
         try:
-            # Normalizar valores: quitar puntos de miles y convertir coma a punto decimal
             df["Monto"] = df["Monto"].apply(
                 lambda x: float(str(x).replace(".", "").replace(",", "."))
             )
@@ -141,8 +138,16 @@ def mostrar_historial():
             st.warning(f"Error al convertir montos: {e}")
         total = df["Monto"].sum()
         st.subheader("🕓 Historial de Facturas")
-        st.dataframe(df)
+        st.dataframe(df.drop(columns=["ID"]))  # mostramos sin ID
+
         st.info(f"💵 Total acumulado: {total:,.2f}")
+
+        # Selección para borrar factura
+        factura_id = st.selectbox("Selecciona el ID de la factura a borrar:", df["ID"])
+        if st.button("🗑️ Borrar Factura"):
+            c.execute("DELETE FROM facturas WHERE id=?", (factura_id,))
+            conn.commit()
+            st.success("✅ Factura eliminada correctamente.")
     else:
         st.info("No hay facturas registradas aún.")
 
