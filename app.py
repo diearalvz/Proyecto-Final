@@ -2,23 +2,20 @@ import streamlit as st
 import google.generativeai as genai
 from PIL import Image
 
-# 1. Configuración de la página
 st.set_page_config(page_title="Asistente de Finanzas")
 st.title("💰 FactuTrack")
 st.write("Sube una foto de tu recibo para extraer los datos automáticamente.")
 
-# 2. Configuración segura de la API
 try:
     api_key = st.secrets["GOOGLE_API_KEY"]
     genai.configure(api_key=api_key)
     
-    # Inicialización del modelo estable (cambia 'flash' por 'pro')
+    # Inicialización correcta del modelo
     model = genai.GenerativeModel(model_name='gemini-1.5-pro')
 except Exception as e:
-    st.error(f"Error al configurar la API: Verifica que 'GOOGLE_API_KEY' esté en tus Secrets. Error: {e}")
+    st.error(f"Error al configurar la API: {e}")
     st.stop()
 
-# 3. Interfaz de usuario
 uploaded_file = st.file_uploader("Sube tu recibo aquí", type=['png', 'jpg', 'jpeg'])
 
 if uploaded_file is not None:
