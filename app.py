@@ -4,7 +4,7 @@ from PIL import Image
 
 # 1. Configuración de la página
 st.set_page_config(page_title="Asistente de Finanzas")
-st.title("💰 FactuTrack")
+st.title("FactuTrack")
 st.write("Sube una foto de tu recibo para extraer los datos automáticamente.")
 
 # 2. Configuración segura de la API
