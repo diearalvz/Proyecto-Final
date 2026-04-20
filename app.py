@@ -63,7 +63,7 @@ st.markdown(
 # ==========================
 st.markdown(
     """
-    <div class="titulo-principal">💰 FactuTrack</div>
+    <div class="titulo-principal">FactuTrack</div>
     <div class="subtitulo">De recibos a datos útiles con IA</div>
     """,
     unsafe_allow_html=True
@@ -137,18 +137,28 @@ def mostrar_historial():
         except Exception as e:
             st.warning(f"Error al convertir montos: {e}")
         total = df["Monto"].sum()
-        st.subheader("🕓 Historial de Facturas")
-        st.dataframe(df.drop(columns=["ID"]))  # mostramos sin ID
+        st.subheader("Historial de Facturas")
+
+        # Construcción manual de tabla con checkboxes en la primera columna
+        facturas_a_borrar = []
+        cols = st.columns([1, 3, 2, 2, 2])  # Definimos columnas
+        cols[0].write("Borrar")
+        cols[1].write("Entidad")
+        cols[2].write("Fecha")
+        cols[3].write("Monto")
+        cols[4].write("Categoría")
+
+        for _, row in df.iterrows():
+            cols = st.columns([1, 3, 2, 2, 2])
+            check = cols[0].checkbox("", key=row["ID"])
+            cols[1].write(row["Entidad"])
+            cols[2].write(row["Fecha"])
+            cols[3].write(f"{row['Monto']:,.2f}")
+            cols[4].write(row["Categoría"])
+            if check:
+                facturas_a_borrar.append(row["ID"])
 
         st.info(f"💵 Total acumulado: {total:,.2f}")
-
-        # Cuadro de selección (checkboxes) para borrar facturas
-        st.write("Selecciona las facturas que deseas borrar:")
-        facturas_a_borrar = []
-        for _, row in df.iterrows():
-            label = f"{row['Entidad']} | {row['Fecha']} | {row['Monto']} | {row['Categoría']}"
-            if st.checkbox(label, key=row["ID"]):
-                facturas_a_borrar.append(row["ID"])
 
         if facturas_a_borrar and st.button("🗑️ Borrar Facturas Seleccionadas"):
             for fid in facturas_a_borrar:
