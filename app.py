@@ -4,7 +4,7 @@ from PIL import Image
 
 # 1. Configuración de la página
 st.set_page_config(page_title="Asistente de Finanzas")
-st.title("FactuTrack")
+st.title("💰 FactuTrack")
 st.write("Sube una foto de tu recibo para extraer los datos automáticamente.")
 
 # 2. Configuración segura de la API
@@ -39,17 +39,24 @@ if uploaded_file is not None:
     st.image(imagen, caption='Recibo subido', use_column_width=True)
 
     if st.button("Analizar Factura"):
-        with st.spinner('Leyendo factura...'):
+        with st.spinner("Leyendo factura..."):
             prompt = """
-            Actúa como un experto contable. Analiza esta factura y extrae la información en formato JSON puro.
+            Actúa como un experto contable. Analiza esta factura y devuelve la información en formato JSON válido.
             Usa estas claves exactas: "entidad", "fecha", "monto", "categoria".
             Si no encuentras un dato, pon "No detectado".
-            Devuelve solo el JSON, sin texto adicional.
+            IMPORTANTE: Devuelve solo el JSON, sin explicaciones, sin texto adicional, sin bloques de código.
             """
+
             try:
                 response = model.generate_content([prompt, imagen])
+
+                # Limpiar posibles bloques de código que devuelva el modelo
+                texto = response.text.strip()
+                if texto.startswith("```"):
+                    texto = texto.strip("`").replace("json", "").strip()
+
                 st.subheader("Datos extraídos:")
-                st.json(response.text)
+                st.json(texto)
             except Exception as e:
                 st.error(f"Error al procesar la imagen: {e}")
 
