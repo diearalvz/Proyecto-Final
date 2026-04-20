@@ -5,7 +5,7 @@ from PIL import Image
 # Configuración segura: Streamlit buscará la clave en sus configuraciones "Secretas"
 # Cuando despliegues en Streamlit Cloud, esto leerá la clave de forma privada
 api_key = st.secrets["AIzaSyCL9bpfDj13AyqzoI1VWwLnnq8OFQeTN_4"]
-genai.configure(api_key=st.secrets["AIzaSyCL9bpfDj13AyqzoI1VWwLnnq8OFQeTN_4"])
+genai.configure(api_key = st.secrets["GOOGLE_API_KEY"]])
 
 model = genai.GenerativeModel('gemini-1.5-flash')
 
