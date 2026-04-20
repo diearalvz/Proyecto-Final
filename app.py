@@ -19,7 +19,6 @@ st.markdown(
         background-color: #0e0e0e;
         color: #FFD700;
     }
-    /* Botones */
     .stButton>button {
         background-color: #FFD700;
         color: #000;
@@ -27,7 +26,6 @@ st.markdown(
         border-radius: 8px;
         padding: 0.6em 1.2em;
     }
-    /* Título principal diferenciado */
     h1 {
         font-size: 3em !important;
         color: #FFD700 !important;
@@ -36,11 +34,9 @@ st.markdown(
         font-weight: bold;
         margin-bottom: 0.5em;
     }
-    /* Subtítulos */
     h2, h3 {
         color: #FFD700;
     }
-    /* Métricas */
     .stMetric {
         background-color: #1a1a1a;
         border-radius: 10px;
@@ -120,13 +116,16 @@ def mostrar_historial():
     if rows:
         df = pd.DataFrame(rows, columns=["Entidad", "Fecha", "Monto", "Categoría"])
         try:
-            df["Monto"] = df["Monto"].str.replace(".", "").str.replace(",", "").astype(float)
-        except:
-            pass
+            # Normalizar valores: quitar puntos de miles y convertir coma a punto decimal
+            df["Monto"] = df["Monto"].apply(
+                lambda x: float(str(x).replace(".", "").replace(",", "."))
+            )
+        except Exception as e:
+            st.warning(f"Error al convertir montos: {e}")
         total = df["Monto"].sum()
         st.subheader("🕓 Historial de Facturas")
         st.dataframe(df)
-        st.info(f"💵 Total acumulado: {total}")
+        st.info(f"💵 Total acumulado: {total:,.2f}")
     else:
         st.info("No hay facturas registradas aún.")
 
