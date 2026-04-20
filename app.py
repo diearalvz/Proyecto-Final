@@ -2,22 +2,28 @@ import streamlit as st
 import google.generativeai as genai
 from PIL import Image
 
-# Configuración segura: Streamlit buscará la clave en sus configuraciones "Secretas"
-# Cuando despliegues en Streamlit Cloud, esto leerá la clave de forma privada
-api_key = st.secrets["AIzaSyCL9bpfDj13AyqzoI1VWwLnnq8OFQeTN_4"]
-genai.configure(api_key = st.secrets["GOOGLE_API_KEY"])
-
-model = genai.GenerativeModel('gemini-1.5-flash')
-
+# 1. Configuración inicial
+st.set_page_config(page_title="Asistente de Finanzas")
 st.title("💰 Asistente de Finanzas del Hogar")
 st.write("Sube una foto de tu recibo para extraer los datos automáticamente.")
 
-archivo = st.file_uploader("Sube la factura (JPG o PNG)", type=['jpg', 'jpeg', 'png'])
+# 2. Configuración segura de la API (Lee la clave desde los Secrets)
+try:
+    # Esto busca el nombre GOOGLE_API_KEY en la configuración de Streamlit
+    api_key = st.secrets["GOOGLE_API_KEY"]
+    genai.configure(api_key=api_key)
+    model = genai.GenerativeModel('gemini-1.5-flash')
+except Exception as e:
+    st.error("Error al configurar la API. Verifica que 'GOOGLE_API_KEY' esté en los Secrets de tu App.")
+    st.stop()
 
-if archivo is not None:
-    imagen = Image.open(archivo)
-    st.image(imagen, caption='Factura cargada', use_column_width=True)
-    
+# 3. Interfaz de usuario
+uploaded_file = st.file_uploader("Sube tu recibo aquí", type=['png', 'jpg', 'jpeg'])
+
+if uploaded_file is not None:
+    imagen = Image.open(uploaded_file)
+    st.image(imagen, caption='Recibo subido', use_column_width=True)
+
     if st.button("Analizar Factura"):
         with st.spinner('Leyendo factura...'):
             prompt = """
@@ -26,5 +32,11 @@ if archivo is not None:
             Si no encuentras un dato, pon "No detectado".
             Devuelve solo el JSON, sin texto adicional.
             """
-            response = model.generate_content([prompt, imagen])
-            st.json(response.text)
+            
+            try:
+                # Aquí enviamos la imagen y el prompt al modelo
+                response = model.generate_content([prompt, imagen])
+                st.subheader("Datos extraídos:")
+                st.json(response.text)
+            except Exception as e:
+                st.error(f"Ocurrió un error al procesar la imagen: {e}")
