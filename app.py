@@ -4,17 +4,16 @@ from PIL import Image
 
 # 1. Configuración de la página
 st.set_page_config(page_title="Asistente de Finanzas")
-st.title("FactuTrack")
+st.title("💰 FactuTrack")
 st.write("Sube una foto de tu recibo para extraer los datos automáticamente.")
 
 # 2. Configuración segura de la API
 try:
-    # Esto lee el nombre de la variable definida en tus Secrets de Streamlit
     api_key = st.secrets["GOOGLE_API_KEY"]
     genai.configure(api_key=api_key)
     
-    # Inicialización del modelo estable
-    model = genai.GenerativeModel('gemini-1.5-flash')
+    # Inicialización del modelo estable (cambia 'flash' por 'pro')
+    model = genai.GenerativeModel(model_name='gemini-1.5-pro')
 except Exception as e:
     st.error(f"Error al configurar la API: Verifica que 'GOOGLE_API_KEY' esté en tus Secrets. Error: {e}")
     st.stop()
@@ -35,7 +34,6 @@ if uploaded_file is not None:
             Devuelve solo el JSON, sin texto adicional.
             """
             try:
-                # Envío de la imagen y el prompt al modelo
                 response = model.generate_content([prompt, imagen])
                 st.subheader("Datos extraídos:")
                 st.json(response.text)
