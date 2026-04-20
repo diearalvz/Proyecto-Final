@@ -1,23 +1,24 @@
 import streamlit as st
 import google.generativeai as genai
 from PIL import Image
-import altair as alt
 import pandas as pd
+import sqlite3
 
 # ==========================
 # CONFIGURACIÓN DE LA PÁGINA
 # ==========================
 st.set_page_config(page_title="FactuTrack", layout="wide")
+
+# ==========================
+# ESTILO VISUAL PREMIUM
+# ==========================
 st.markdown(
     """
     <style>
-    /* Fondo y texto */
     body {
         background-color: #0e0e0e;
         color: #FFD700;
     }
-
-    /* Botones */
     .stButton>button {
         background-color: #FFD700;
         color: #000;
@@ -25,26 +26,15 @@ st.markdown(
         border-radius: 8px;
         padding: 0.6em 1.2em;
     }
-
-    /* Encabezados */
     h1, h2, h3 {
         color: #FFD700;
         text-shadow: 0 0 10px #FFD700;
     }
-
-    /* Métricas */
     .stMetric {
         background-color: #1a1a1a;
         border-radius: 10px;
         padding: 1em;
         box-shadow: 0 0 10px rgba(255, 215, 0, 0.3);
-    }
-
-    /* Gráficos */
-    .vega-embed {
-        background-color: #1a1a1a;
-        border-radius: 10px;
-        padding: 1em;
     }
     </style>
     """,
@@ -79,6 +69,57 @@ try:
 except Exception as e:
     st.error(f"Error al configurar la API: {e}")
     st.stop()
+
+# ==========================
+# BASE DE DATOS LOCAL
+# ==========================
+conn = sqlite3.connect("facturas.db")
+c = conn.cursor()
+c.execute('''
+    CREATE TABLE IF NOT EXISTS facturas (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        entidad TEXT,
+        fecha TEXT,
+        monto TEXT,
+        categoria TEXT
+    )
+''')
+conn.commit()
+
+def guardar_factura(entidad, fecha, monto, categoria):
+    # Verificar duplicados
+    c.execute('''
+        SELECT * FROM facturas
+        WHERE entidad=? AND fecha=? AND monto=?
+    ''', (entidad, fecha, monto))
+    duplicado = c.fetchone()
+
+    if duplicado:
+        st.warning("⚠️ Factura duplicada detectada: mismo día, mismo lugar y mismo valor.")
+    else:
+        c.execute('''
+            INSERT INTO facturas (entidad, fecha, monto, categoria)
+            VALUES (?, ?, ?, ?)
+        ''', (entidad, fecha, monto, categoria))
+        conn.commit()
+        st.success("✅ Factura guardada en el historial.")
+
+def mostrar_historial():
+    c.execute("SELECT entidad, fecha, monto, categoria FROM facturas")
+    rows = c.fetchall()
+    if rows:
+        df = pd.DataFrame(rows, columns=["Entidad", "Fecha", "Monto", "Categoría"])
+        # Convertir monto a número si es posible
+        try:
+            df["Monto"] = df["Monto"].str.replace(".", "").str.replace(",", "").astype(float)
+        except:
+            pass
+        total = df["Monto"].sum()
+        st.subheader("🕓 Historial de Facturas")
+        st.dataframe(df)
+        st.info(f"💵 Total acumulado: {total}")
+    else:
+        st.info("No hay facturas registradas aún.")
 
 # ==========================
 # INTERFAZ PRINCIPAL
@@ -116,25 +157,11 @@ with col1:
                         st.metric("💵 Monto", datos["monto"])
                         st.metric("📂 Categoría", datos["categoria"])
 
-                    # Gráfico de resumen
-                    st.subheader("📈 Resumen de Gastos")
-                    data = pd.DataFrame({
-                        'Categoría': [datos["categoria"]],
-                        'Monto': [float(str(datos["monto"]).replace(",", "").replace(".", ""))]
-                    })
-                    chart = alt.Chart(data).mark_bar(color='#FFD700').encode(
-                        x='Categoría',
-                        y='Monto'
-                    )
-                    st.altair_chart(chart, use_container_width=True)
-
-                    # Botones de acción
-                    st.download_button("⬇️ Descargar CSV", data.to_csv(index=False), "factura.csv")
-                    st.button("🕓 Historial de Facturas")
+                    # Guardar en historial
+                    guardar_factura(datos["entidad"], datos["fecha"], datos["monto"], datos["categoria"])
 
                 except Exception as e:
                     st.error(f"Error al procesar la imagen: {e}")
 
 with col2:
-    st.subheader("📊 Datos Extraídos")
-    st.info("Los resultados aparecerán aquí después del análisis.")
+    mostrar_historial()
