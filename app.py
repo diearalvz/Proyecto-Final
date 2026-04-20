@@ -63,7 +63,7 @@ st.markdown(
 # ==========================
 st.markdown(
     """
-    <div class="titulo-principal">FactuTrack</div>
+    <div class="titulo-principal">💰 FactuTrack</div>
     <div class="subtitulo">De recibos a datos útiles con IA</div>
     """,
     unsafe_allow_html=True
@@ -142,12 +142,19 @@ def mostrar_historial():
 
         st.info(f"💵 Total acumulado: {total:,.2f}")
 
-        # Selección para borrar factura
-        factura_id = st.selectbox("Selecciona el ID de la factura a borrar:", df["ID"])
-        if st.button("🗑️ Borrar Factura"):
-            c.execute("DELETE FROM facturas WHERE id=?", (factura_id,))
+        # Cuadro de selección (checkboxes) para borrar facturas
+        st.write("Selecciona las facturas que deseas borrar:")
+        facturas_a_borrar = []
+        for _, row in df.iterrows():
+            label = f"{row['Entidad']} | {row['Fecha']} | {row['Monto']} | {row['Categoría']}"
+            if st.checkbox(label, key=row["ID"]):
+                facturas_a_borrar.append(row["ID"])
+
+        if facturas_a_borrar and st.button("🗑️ Borrar Facturas Seleccionadas"):
+            for fid in facturas_a_borrar:
+                c.execute("DELETE FROM facturas WHERE id=?", (fid,))
             conn.commit()
-            st.success("✅ Factura eliminada correctamente.")
+            st.success("✅ Facturas eliminadas correctamente.")
     else:
         st.info("No hay facturas registradas aún.")
 
