@@ -29,19 +29,18 @@ cargar_css()
 st.markdown("""
 <div class="header">
     <h2>📊 FactuTrack</h2>
-    <div>👤 Usuario</div>
 </div>
 """, unsafe_allow_html=True)
 
 # ==========================
-# API GEMINI
+# API
 # ==========================
 try:
     genai.configure(api_key=st.secrets["GOOGLE_API_KEY"])
     model = genai.GenerativeModel("gemini-1.5-flash")
 except:
-    st.error("⚠️ Configura tu API KEY en secrets")
-    st.stop()
+    st.warning("⚠️ API no configurada")
+    model = None
 
 # ==========================
 # DB
@@ -62,7 +61,7 @@ categoria TEXT
 conn.commit()
 
 # ==========================
-# LOGIN
+# LOGIN SIMPLE
 # ==========================
 usuario = st.text_input("👤 Ingresa tu usuario")
 
@@ -73,12 +72,22 @@ if not usuario:
 # FUNCIONES
 # ==========================
 def obtener_df():
-    return pd.read_sql_query(
-        "SELECT id, entidad, fecha, monto, categoria FROM facturas WHERE usuario=? ORDER BY id DESC",
+    df = pd.read_sql_query(
+        "SELECT entidad, fecha, monto, categoria FROM facturas WHERE usuario=? ORDER BY rowid DESC",
         conn, params=(usuario,)
     )
+    
+    if not df.empty:
+        df["monto"] = pd.to_numeric(df["monto"], errors="coerce").fillna(0)
+    
+    return df
 
 def guardar(entidad, fecha, monto, categoria):
+    try:
+        monto = float(monto)
+    except:
+        monto = 0
+
     c.execute("""
     INSERT INTO facturas (usuario, entidad, fecha, monto, categoria)
     VALUES (?,?,?,?,?)
@@ -90,11 +99,11 @@ def guardar(entidad, fecha, monto, categoria):
 # ==========================
 df = obtener_df()
 
-total = float(df["monto"].sum()) if not df.empty else 0.0
+total = df["monto"].sum() if not df.empty else 0
 cantidad = len(df)
 
 # ==========================
-# KPIs (CORREGIDO)
+# KPIs
 # ==========================
 col1, col2 = st.columns(2)
 
@@ -115,7 +124,7 @@ with col2:
     """, unsafe_allow_html=True)
 
 # ==========================
-# SUBIDA + RESULTADO
+# SUBIDA
 # ==========================
 col1, col2 = st.columns(2)
 
@@ -140,7 +149,9 @@ with col1:
 
     st.markdown('</div>', unsafe_allow_html=True)
 
-# VARIABLES SEGURAS
+# ==========================
+# RESULTADO IA
+# ==========================
 entidad = "—"
 fecha = "—"
 monto = 0
@@ -150,45 +161,43 @@ with col2:
 
     if imagen and st.button("Analizar y Guardar"):
 
-        prompt = """
-        Devuelve SOLO JSON válido:
-        {
-        "entidad":"",
-        "fecha":"YYYY-MM-DD",
-        "monto":"",
-        "categoria":""
-        }
-        """
+        if not model:
+            st.error("API no disponible")
+        else:
+            try:
+                prompt = """
+                Devuelve SOLO JSON:
+                entidad, fecha, monto, categoria
+                """
 
-        try:
-            r = model.generate_content([prompt, imagen])
-            texto = re.sub(r"```json|```", "", r.text).strip()
-            data = json.loads(texto)
+                r = model.generate_content([prompt, imagen])
+                texto = re.sub(r"```json|```","", r.text).strip()
+                data = json.loads(texto)
 
-            entidad = data.get("entidad","No detectado")
-            fecha = data.get("fecha","")
-            monto = float(str(data.get("monto","0")).replace(",","."))
-            categoria = data.get("categoria","otros")
+                entidad = data.get("entidad","No detectado")
+                fecha = data.get("fecha","")
+                monto = data.get("monto",0)
+                categoria = data.get("categoria","otros")
 
-            guardar(entidad, fecha, monto, categoria)
+                guardar(entidad, fecha, monto, categoria)
 
-            st.success("✅ Factura guardada")
+                st.success("✅ Guardado correctamente")
 
-        except Exception as e:
-            st.error("❌ Error leyendo factura")
+            except Exception as e:
+                st.error("❌ Error procesando factura")
 
     st.markdown(f"""
     <div class="card">
         <h4>📄 Datos detectados</h4>
         <p><b>Entidad:</b> {entidad}</p>
         <p><b>Fecha:</b> {fecha}</p>
-        <p><b>Monto:</b> ${monto:,.0f}</p>
+        <p><b>Monto:</b> ${float(monto):,.0f}</p>
         <p><b>Categoría:</b> {categoria}</p>
     </div>
     """, unsafe_allow_html=True)
 
 # ==========================
-# HISTORIAL + GRAFICA
+# HISTORIAL
 # ==========================
 col1, col2 = st.columns(2)
 
@@ -199,7 +208,7 @@ with col1:
     if not df.empty:
         st.dataframe(df, use_container_width=True)
     else:
-        st.info("No hay datos aún")
+        st.info("Sin registros aún")
 
     st.markdown('</div>', unsafe_allow_html=True)
 
@@ -208,7 +217,6 @@ with col2:
     st.write("📊 Gastos por categoría")
 
     if not df.empty:
-        graf = df.groupby("categoria")["monto"].sum()
-        st.bar_chart(graf)
+        st.bar_chart(df.groupby("categoria")["monto"].sum())
 
     st.markdown('</div>', unsafe_allow_html=True)
