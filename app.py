@@ -99,8 +99,9 @@ def guardar(entidad, fecha, monto, categoria):
               (usuario, entidad, fecha, monto, categoria))
     conn.commit()
 
-def borrar_factura(fid):
-    c.execute("DELETE FROM facturas WHERE id=?", (fid,))
+def borrar_facturas(ids):
+    for fid in ids:
+        c.execute("DELETE FROM facturas WHERE id=?", (fid,))
     conn.commit()
 
 # ==========================
@@ -121,27 +122,28 @@ with col2:
     st.markdown(f"<div class='card'><h4>📄 Facturas</h4><h2>{cantidad}</h2></div>", unsafe_allow_html=True)
     st.markdown('<div class="card"><h4>📄 Historial</h4>', unsafe_allow_html=True)
     if not df.empty:
-        for _, row in df.iterrows():
-            cols = st.columns([3,2,2,2,1])
-            cols[0].write(row["entidad"].title())
-            cols[1].write(row["fecha"])
-            cols[2].write(f"${row['monto']:,.0f}")
-            cols[3].write(row["categoria"].title())
-            if cols[4].button("🗑️", key=f"del_{row['id']}"):
-                st.session_state["confirm_delete"] = row["id"]
+        facturas_a_borrar = []
+        cols_header = st.columns([1,3,2,2,2])
+        cols_header[0].write("Borrar")
+        cols_header[1].write("Entidad")
+        cols_header[2].write("Fecha")
+        cols_header[3].write("Monto")
+        cols_header[4].write("Categoría")
 
-        # Confirmación de borrado
-        if "confirm_delete" in st.session_state:
-            fid = st.session_state["confirm_delete"]
-            st.warning(f"¿Seguro que deseas borrar la factura ID {fid}?")
-            colA, colB = st.columns(2)
-            if colA.button("✅ Sí, borrar", key="yes_delete"):
-                borrar_factura(fid)
-                st.success("Factura eliminada correctamente.")
-                del st.session_state["confirm_delete"]
-                st.experimental_rerun()
-            if colB.button("❌ Cancelar", key="cancel_delete"):
-                del st.session_state["confirm_delete"]
+        for _, row in df.iterrows():
+            cols = st.columns([1,3,2,2,2])
+            check = cols[0].checkbox("", key=f"chk_{row['id']}")
+            cols[1].write(row["entidad"].title())
+            cols[2].write(row["fecha"])
+            cols[3].write(f"${row['monto']:,.0f}")
+            cols[4].write(row["categoria"].title())
+            if check:
+                facturas_a_borrar.append(row["id"])
+
+        if facturas_a_borrar and st.button("🗑️ Borrar seleccionadas"):
+            borrar_facturas(facturas_a_borrar)
+            st.success("✅ Facturas eliminadas correctamente.")
+            st.experimental_rerun()
 
         st.bar_chart(df.groupby("categoria")["monto"].sum())
     else:
