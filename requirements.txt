@@ -1,6 +1,4 @@
 streamlit
 pandas
-Pillow
-plotly
+pillow
 google-generativeai
-xlsxwriter
