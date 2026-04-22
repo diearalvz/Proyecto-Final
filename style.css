@@ -3,40 +3,22 @@ body {
     color: white;
 }
 
-/* Header */
 .header {
     display:flex;
     justify-content:space-between;
     align-items:center;
     padding:10px 20px;
-    border-bottom:1px solid rgba(255,255,255,0.1);
 }
 
-/* Sidebar fake */
-.sidebar {
-    background:#1e293b;
-    padding:15px;
-    border-radius:12px;
-}
-
-/* Cards */
 .card {
     background: #1e293b;
     border-radius: 12px;
     padding: 15px;
     margin-bottom: 15px;
-    box-shadow: 0 4px 15px rgba(0,0,0,0.4);
 }
 
-/* Botones dorados */
 .stButton>button {
     background: linear-gradient(135deg, #facc15, #eab308);
     color: black;
     font-weight: bold;
-    border-radius: 8px;
-}
-
-/* Títulos */
-h1, h2, h3 {
-    color: #facc15;
 }
