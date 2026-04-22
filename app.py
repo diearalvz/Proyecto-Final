@@ -5,8 +5,8 @@ import pandas as pd
 import sqlite3
 import json
 import re
-from datetime import datetime
 import plotly.express as px
+import io
 
 # ==========================
 # CONFIGURACIÓN GENERAL
@@ -14,75 +14,27 @@ import plotly.express as px
 st.set_page_config(page_title="FactuTrack", layout="wide")
 
 # ==========================
-# ESTILO PREMIUM
+# CARGAR ESTILOS PREMIUM
 # ==========================
-st.markdown("""
-<style>
-body {
-    background-color: #0E0E10;
-    color: #E5E5E5;
-    font-family: 'Segoe UI', sans-serif;
-}
-
-header, .css-18e3th9, .css-1d391kg {
-    background-color: #0E0E10 !important;
-}
-
-.titulo {
-    text-align:center;
-    font-size:2.4em;
-    font-weight:bold;
-    color:#D4AF37;
-    margin-bottom:5px;
-}
-
-.sub {
-    text-align:center;
-    color:#A0A0A0;
-    margin-bottom:30px;
-}
-
-.card {
-    background:#1A1A1D;
-    padding:1em;
-    border-radius:12px;
-    box-shadow:0 2px 8px rgba(212,175,55,0.2);
-    margin-bottom:10px;
-}
-
-.total {
-    text-align:center;
-    font-size:1.8em;
-    font-weight:bold;
-    color:#D4AF37;
-    margin:20px 0;
-}
-
-.stButton>button {
-    background:#D4AF37;
-    color:#0E0E10;
-    border-radius:10px;
-    width:100%;
-    padding:0.6em;
-    font-weight:bold;
-}
-
-.stRadio>div {
-    justify-content:center;
-}
-
-input, select, textarea {
-    background-color:#1A1A1D !important;
-    color:#E5E5E5 !important;
-}
-</style>
-""", unsafe_allow_html=True)
+with open("style.css") as f:
+    st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
 
 # ==========================
-# HEADER
+# HEADER CON NAVEGACIÓN
 # ==========================
-st.markdown('<div class="titulo">📊 FactuTrack</div>', unsafe_allow_html=True)
-st.markdown('<div class="sub">Controla tus gastos de manera inteligente</div>', unsafe_allow_html=True)
+col1, col2, col3, col4, col5 = st.columns([2,1,1,1,1])
+with col1:
+    st.markdown('<div class="titulo">📊 FactuTrack</div>', unsafe_allow_html=True)
+with col2:
+    st.button("Inicio")
+with col3:
+    st.button("Reportes")
+with col4:
+    st.button("Admin")
+with col5:
+    st.button("Perfil")
+
+st.markdown('<div class="sub">De recibos a datos útiles</div>', unsafe_allow_html=True)
 
 # ==========================
 # API GEMINI
@@ -110,8 +62,9 @@ conn.commit()
 # ==========================
 # LOGIN
 # ==========================
-usuario = st.text_input("👤 Ingresa tu nombre o correo")
+usuario = st.text_input("👤 Ingresa tu usuario o correo:")
 if not usuario:
+    st.warning("Por favor ingresa tu usuario para continuar.")
     st.stop()
 
 # ==========================
@@ -138,6 +91,18 @@ def guardar(entidad, fecha, monto, categoria):
     VALUES (?,?,?,?,?)
     """,(usuario, entidad, fecha, monto, categoria))
     conn.commit()
+
+# ==========================
+# TARJETAS RESUMEN
+# ==========================
+df = obtener_df()
+col1, col2 = st.columns(2)
+with col1:
+    total = df["monto"].sum() if not df.empty else 0
+    st.markdown(f'<div class="card"><h3 style="color:#D4AF37;">💰 Gasto Total</h3><p style="font-size:1.5em;">${total:,.0f}</p></div>', unsafe_allow_html=True)
+with col2:
+    count = len(df) if not df.empty else 0
+    st.markdown(f'<div class="card"><h3 style="color:#D4AF37;">📄 Facturas</h3><p style="font-size:1.5em;">{count}</p></div>', unsafe_allow_html=True)
 
 # ==========================
 # SECCIÓN: AGREGAR FACTURA
@@ -193,15 +158,11 @@ with col2:
                 st.error("❌ No se pudo analizar la factura")
 
 # ==========================
-# SECCIÓN: RESUMEN
+# SECCIÓN: RESUMEN DE GASTOS
 # ==========================
 st.markdown("### 📊 Resumen de Gastos")
-df = obtener_df()
 
 if not df.empty:
-    total = df["monto"].sum()
-    st.markdown(f'<div class="total">💰 Total: ${total:,.0f}</div>', unsafe_allow_html=True)
-
     col1, col2 = st.columns([2,1])
     with col1:
         st.dataframe(df[["entidad","fecha","categoria","monto"]], use_container_width=True)
@@ -211,7 +172,27 @@ if not df.empty:
         st.plotly_chart(fig, use_container_width=True)
 
     st.markdown("#### 📤 Exportar o Ver Reporte Completo")
-    st.button("Exportar")
+
+    # Exportar a CSV
+    csv = df.to_csv(index=False).encode("utf-8")
+    st.download_button(
+        label="⬇️ Exportar a CSV",
+        data=csv,
+        file_name="facturas.csv",
+        mime="text/csv"
+    )
+
+    # Exportar a Excel
+    excel_buffer = io.BytesIO()
+    with pd.ExcelWriter(excel_buffer, engine="xlsxwriter") as writer:
+        df.to_excel(writer, index=False, sheet_name="Facturas")
+    st.download_button(
+        label="⬇️ Exportar a Excel",
+        data=excel_buffer.getvalue(),
+        file_name="facturas.xlsx",
+        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    )
+
     st.button("Ver Reporte Completo")
 else:
     st.info("Aún no tienes facturas registradas.")
