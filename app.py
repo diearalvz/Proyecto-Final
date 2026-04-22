@@ -64,7 +64,7 @@ conn.commit()
 # ==========================
 # LOGIN SIMPLE
 # ==========================
-usuario = st.text_input("👤 Ingresa tu usuario")
+usuario = st.text_input("👤 Usuario")
 login_ok = st.button("Ingresar")
 
 if not usuario or not login_ok:
@@ -187,5 +187,5 @@ with col1:
 with col2:
     st.markdown('<div class="card"><h4>📊 Gastos por categoría</h4>', unsafe_allow_html=True)
     if not df.empty:
-        st.bar_chart(df.groupby("Categoria")["Monto"].sum())
+        st.bar_chart(df.groupby("categoria")["monto"].sum())
     st.markdown('</div>', unsafe_allow_html=True)
