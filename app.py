@@ -65,7 +65,9 @@ conn.commit()
 # LOGIN SIMPLE
 # ==========================
 usuario = st.text_input("👤 Ingresa tu usuario")
-if not usuario:
+login_ok = st.button("Ingresar")
+
+if not usuario or not login_ok:
     st.stop()
 
 # ==========================
@@ -169,9 +171,15 @@ with col1:
     st.markdown('<div class="card"><h4>📄 Historial</h4>', unsafe_allow_html=True)
     if not df.empty:
         df_display = df.copy()
-        df_display["Entidad"] = df_display["entidad"].str.title()
-        df_display["Categoría"] = df_display["categoria"].str.title()
-        st.dataframe(df_display[["Entidad","Fecha","Monto","Categoría"]], use_container_width=True)
+        df_display.rename(columns={
+            "entidad": "Entidad",
+            "fecha": "Fecha",
+            "monto": "Monto",
+            "categoria": "Categoría"
+        }, inplace=True)
+        df_display["Entidad"] = df_display["Entidad"].str.title()
+        df_display["Categoría"] = df_display["Categoría"].str.title()
+        st.dataframe(df_display, use_container_width=True)
     else:
         st.info("Sin registros aún")
     st.markdown('</div>', unsafe_allow_html=True)
@@ -179,5 +187,5 @@ with col1:
 with col2:
     st.markdown('<div class="card"><h4>📊 Gastos por categoría</h4>', unsafe_allow_html=True)
     if not df.empty:
-        st.bar_chart(df.groupby("categoria")["monto"].sum())
+        st.bar_chart(df.groupby("Categoria")["Monto"].sum())
     st.markdown('</div>', unsafe_allow_html=True)
