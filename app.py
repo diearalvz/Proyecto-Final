@@ -5,36 +5,30 @@ import pandas as pd
 import sqlite3
 import json
 import re
-import plotly.express as px
-import io
 
 # ==========================
-# CONFIGURACIÓN GENERAL
+# CONFIG
 # ==========================
 st.set_page_config(page_title="FactuTrack", layout="wide")
 
 # ==========================
-# CARGAR ESTILOS PREMIUM
+# CARGAR CSS
 # ==========================
-with open("style.css") as f:
-    st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
+def cargar_css():
+    with open("style.css") as f:
+        st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
+
+cargar_css()
 
 # ==========================
-# HEADER PREMIUM
+# HEADER
 # ==========================
 st.markdown("""
-<div style="display:flex; justify-content:space-between; align-items:center; background-color:#1A1A1D; padding:15px; border-radius:10px; box-shadow:0 2px 8px rgba(212,175,55,0.3);">
-    <div style="font-size:1.8em; font-weight:bold; color:#D4AF37;">📊 FactuTrack</div>
-    <div style="display:flex; gap:20px;">
-        <button style="background:#D4AF37; color:#0E0E10; border:none; padding:8px 16px; border-radius:8px; font-weight:bold;">Inicio</button>
-        <button style="background:#D4AF37; color:#0E0E10; border:none; padding:8px 16px; border-radius:8px; font-weight:bold;">Reportes</button>
-        <button style="background:#D4AF37; color:#0E0E10; border:none; padding:8px 16px; border-radius:8px; font-weight:bold;">Admin</button>
-        <button style="background:#D4AF37; color:#0E0E10; border:none; padding:8px 16px; border-radius:8px; font-weight:bold;">Perfil</button>
-    </div>
+<div class="header">
+    <h2>📊 FactuTrack</h2>
+    <div>👤 Usuario</div>
 </div>
 """, unsafe_allow_html=True)
-
-st.markdown('<div class="sub">De recibos a datos útiles</div>', unsafe_allow_html=True)
 
 # ==========================
 # API GEMINI
@@ -43,10 +37,11 @@ genai.configure(api_key=st.secrets["GOOGLE_API_KEY"])
 model = genai.GenerativeModel("gemini-1.5-flash")
 
 # ==========================
-# BASE DE DATOS
+# DB
 # ==========================
 conn = sqlite3.connect("facturas.db", check_same_thread=False)
 c = conn.cursor()
+
 c.execute("""
 CREATE TABLE IF NOT EXISTS facturas (
 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -60,28 +55,19 @@ categoria TEXT
 conn.commit()
 
 # ==========================
-# LOGIN
+# LOGIN SIMPLE
 # ==========================
-usuario = st.text_input("👤 Ingresa tu usuario o correo:")
+usuario = st.text_input("👤 Ingresa tu usuario")
+
 if not usuario:
-    st.warning("Por favor ingresa tu usuario para continuar.")
     st.stop()
 
 # ==========================
 # FUNCIONES
 # ==========================
-def limpiar_monto(valor):
-    try:
-        return float(str(valor).replace(",", "").replace("$",""))
-    except:
-        return 0.0
-
-def limpiar_fecha(fecha):
-    return str(fecha).replace("/", "-")
-
 def obtener_df():
     return pd.read_sql_query(
-        "SELECT * FROM facturas WHERE usuario=? ORDER BY id DESC",
+        "SELECT id, entidad, fecha, monto, categoria FROM facturas WHERE usuario=? ORDER BY id DESC",
         conn, params=(usuario,)
     )
 
@@ -93,125 +79,125 @@ def guardar(entidad, fecha, monto, categoria):
     conn.commit()
 
 # ==========================
-# TARJETAS RESUMEN
+# DATOS
 # ==========================
 df = obtener_df()
-if not df.empty and "monto" in df.columns:
-    total = pd.to_numeric(df["monto"], errors="coerce").sum()
-else:
-    total = 0.0
-count = len(df) if not df.empty else 0
 
+total = df["monto"].sum() if not df.empty else 0
+cantidad = len(df)
+
+# ==========================
+# KPIs
+# ==========================
 col1, col2 = st.columns(2)
+
 with col1:
     st.markdown(f"""
-    <div class="card" style="text-align:center;">
-        <h3 style="color:#D4AF37;">💰 Gasto Total</h3>
-        <p style="font-size:2em; font-weight:bold;">${total:,.0f}</p>
+    <div class="card">
+        <h4>💰 Gasto Total</h4>
+        <h2>${total:,.0f}</h2>
     </div>
     """, unsafe_allow_html=True)
+
 with col2:
     st.markdown(f"""
-    <div class="card" style="text-align:center;">
-        <h3 style="color:#D4AF37;">📄 Facturas</h3>
-        <p style="font-size:2em; font-weight:bold;">{count}</p>
+    <div class="card">
+        <h4>📄 Facturas</h4>
+        <h2>{cantidad}</h2>
     </div>
     """, unsafe_allow_html=True)
 
 # ==========================
-# SECCIÓN: AGREGAR FACTURA
+# SUBIR + RESULTADO
 # ==========================
-st.markdown("### 📸 Agregar Nueva Factura")
-col1, col2 = st.columns([1,1])
+col1, col2 = st.columns(2)
+
+imagen = None
+entidad = ""
+fecha = ""
+monto = 0
+categoria = ""
 
 with col1:
-    opcion = st.radio("", ["📁 Subir Imagen", "📸 Tomar Foto"], horizontal=True)
-    imagen = None
-    if opcion == "📁 Subir Imagen":
-        file = st.file_uploader("Selecciona tu recibo", type=["png","jpg","jpeg"])
+    st.markdown('<div class="card">', unsafe_allow_html=True)
+
+    opcion = st.radio("Método", ["Subir imagen", "Tomar foto"])
+
+    if opcion == "Subir imagen":
+        file = st.file_uploader("", type=["jpg","png","jpeg"])
         if file:
             imagen = Image.open(file)
-            st.image(imagen, width=250)
+            st.image(imagen)
+
     else:
-        foto = st.camera_input("Toma una foto")
+        foto = st.camera_input("")
         if foto:
             imagen = Image.open(foto)
-            st.image(imagen, width=250)
+            st.image(imagen)
+
+    st.markdown('</div>', unsafe_allow_html=True)
 
 with col2:
-    st.markdown("#### 🧠 Datos Detectados")
-    entidad = st.text_input("Entidad")
-    fecha = st.text_input("Fecha (YYYY-MM-DD)")
-    monto = st.text_input("Monto")
-    categoria = st.text_input("Categoría")
-
     if imagen and st.button("Analizar y Guardar"):
-        with st.spinner("Analizando factura..."):
-            prompt = """
-            Devuelve SOLO JSON válido:
-            {
-            "entidad":"",
-            "fecha":"YYYY-MM-DD",
-            "monto":"",
-            "categoria":""
-            }
-            """
-            try:
-                r = model.generate_content([prompt, imagen])
-                texto = re.sub(r"```json|```","", r.text).strip()
-                data = json.loads(texto)
 
-                entidad = data.get("entidad","No detectado")
-                fecha = limpiar_fecha(data.get("fecha"))
-                monto = limpiar_monto(data.get("monto"))
-                categoria = data.get("categoria","otros")
+        prompt = """
+        Devuelve SOLO JSON válido:
+        {
+        "entidad":"",
+        "fecha":"YYYY-MM-DD",
+        "monto":"",
+        "categoria":""
+        }
+        """
 
-                guardar(entidad, fecha, monto, categoria)
-                st.success("✅ Factura guardada correctamente")
-            except:
-                st.error("❌ No se pudo analizar la factura")
+        try:
+            r = model.generate_content([prompt, imagen])
+            texto = re.sub(r"```json|```","", r.text).strip()
+            data = json.loads(texto)
+
+            entidad = data.get("entidad","No detectado")
+            fecha = data.get("fecha","")
+            monto = float(str(data.get("monto","0")).replace(",","."))
+            categoria = data.get("categoria","otros")
+
+            guardar(entidad, fecha, monto, categoria)
+
+            st.success("Factura guardada")
+
+        except:
+            st.error("Error leyendo factura")
+
+    st.markdown(f"""
+    <div class="card">
+        <h4>📄 Datos detectados</h4>
+        <p><b>Entidad:</b> {entidad}</p>
+        <p><b>Fecha:</b> {fecha}</p>
+        <p><b>Monto:</b> ${monto}</p>
+        <p><b>Categoría:</b> {categoria}</p>
+    </div>
+    """, unsafe_allow_html=True)
 
 # ==========================
-# SECCIÓN: RESUMEN DE GASTOS
+# HISTORIAL + GRAFICA
 # ==========================
-st.markdown("### 📊 Resumen de Gastos")
+col1, col2 = st.columns(2)
 
-if not df.empty:
-    col1, col2 = st.columns([2,1])
-    with col1:
-        st.dataframe(df[["entidad","fecha","categoria","monto"]], use_container_width=True)
-    with col2:
-        fig = px.pie(
-            df,
-            names="categoria",
-            values="monto",
-            title="Gastos por Categoría",
-            color_discrete_sequence=["#D4AF37", "#FFD700", "#B8860B", "#DAA520"]
-        )
-        st.plotly_chart(fig, use_container_width=True)
+with col1:
+    st.markdown('<div class="card">', unsafe_allow_html=True)
+    st.write("📄 Historial")
 
-    st.markdown("#### 📤 Exportar o Ver Reporte Completo")
+    if not df.empty:
+        st.dataframe(df, use_container_width=True)
+    else:
+        st.info("No hay datos")
 
-    # Exportar a CSV
-    csv = df.to_csv(index=False).encode("utf-8")
-    st.download_button(
-        label="⬇️ Exportar a CSV",
-        data=csv,
-        file_name="facturas.csv",
-        mime="text/csv"
-    )
+    st.markdown('</div>', unsafe_allow_html=True)
 
-    # Exportar a Excel
-    excel_buffer = io.BytesIO()
-    with pd.ExcelWriter(excel_buffer, engine="xlsxwriter") as writer:
-        df.to_excel(writer, index=False, sheet_name="Facturas")
-    st.download_button(
-        label="⬇️ Exportar a Excel",
-        data=excel_buffer.getvalue(),
-        file_name="facturas.xlsx",
-        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-    )
+with col2:
+    st.markdown('<div class="card">', unsafe_allow_html=True)
+    st.write("📊 Gastos por categoría")
 
-    st.button("Ver Reporte Completo")
-else:
-    st.info("Aún no tienes facturas registradas.")
+    if not df.empty:
+        st.bar_chart(df.groupby("categoria")["monto"].sum())
+
+    st.markdown('</div>', unsafe_allow_html=True)
