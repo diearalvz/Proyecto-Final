@@ -10,7 +10,7 @@ import sqlite3
 st.set_page_config(page_title="FactuTrack", layout="wide")
 
 # ==========================
-# ESTILO VISUAL PREMIUM COMPACTO
+# ESTILO VISUAL PREMIUM
 # ==========================
 st.markdown(
     """
@@ -46,8 +46,8 @@ st.markdown(
 # ==========================
 st.markdown(
     """
-    <div class="titulo-principal">💰 FactuTrack</div>
-    <div class="subtitulo">De recibos a datos útiles</div>
+    <div class="titulo-principal">FactuTrack</div>
+    <div class="subtitulo">De recibos a datos útiles con IA</div>
     """,
     unsafe_allow_html=True
 )
@@ -128,61 +128,55 @@ def guardar_factura(entidad, fecha, monto, categoria):
         st.success("✅ Factura guardada en tu historial.")
 
 def mostrar_historial():
-    c.execute("SELECT id, entidad, fecha, monto, categoria FROM facturas WHERE usuario=?", (st.session_state["usuario"],))
+    c.execute("SELECT entidad, fecha, monto, categoria FROM facturas WHERE usuario=?", (st.session_state["usuario"],))
     rows = c.fetchall()
     if rows:
-        df = pd.DataFrame(rows, columns=["ID", "Entidad", "Fecha", "Monto", "Categoría"])
+        df = pd.DataFrame(rows, columns=["Entidad", "Fecha", "Monto", "Categoría"])
         try:
             df["Monto"] = df["Monto"].apply(lambda x: float(str(x).replace(".", "").replace(",", ".")))
         except Exception as e:
             st.warning(f"Error al convertir montos: {e}")
         total = df["Monto"].sum()
         st.subheader("🕓 Historial de Facturas")
-        st.dataframe(df, use_container_width=True, height=250)
+        st.dataframe(df, use_container_width=True, height=300)
         st.info(f"💵 Total acumulado: {total:,.2f}")
-        facturas_a_borrar = []
-        for _, row in df.iterrows():
-            if st.checkbox(f"Borrar {row['Entidad']} - {row['Fecha']}", key=row["ID"]):
-                facturas_a_borrar.append(row["ID"])
-        if facturas_a_borrar and st.button("🗑️ Borrar Facturas Seleccionadas"):
-            for fid in facturas_a_borrar:
-                c.execute("DELETE FROM facturas WHERE id=?", (fid,))
-            conn.commit()
-            st.success("✅ Facturas eliminadas correctamente.")
     else:
         st.info("No tienes facturas registradas aún.")
 
 # ==========================
-# INTERFAZ PRINCIPAL (UNA SOLA VISTA)
+# INTERFAZ PRINCIPAL EN DOS COLUMNAS
 # ==========================
-st.subheader("📤 Sube tu recibo")
-uploaded_file = st.file_uploader("Arrastra o sube una imagen (JPG, PNG)", type=['png', 'jpg', 'jpeg'])
-if uploaded_file:
-    imagen = Image.open(uploaded_file)
-    st.image(imagen, caption='Recibo subido', width=280)  # Imagen más pequeña
-    if st.button("Analizar Factura"):
-        with st.spinner("Leyendo factura..."):
-            prompt = """
-            Analiza esta factura y devuelve la información en formato JSON válido.
-            Usa estas claves exactas: "entidad", "fecha", "monto", "categoria".
-            Si no encuentras un dato, pon "No detectado".
-            Devuelve solo el JSON, sin texto adicional.
-            """
-            try:
-                response = model.generate_content([prompt, imagen])
-                texto = response.text.strip()
-                if texto.startswith("```"):
-                    texto = texto.strip("`").replace("json", "").strip()
-                datos = eval(texto)
-                st.success("✅ Datos extraídos")
-                colA, colB, colC, colD = st.columns(4)
-                colA.metric("🏢 Entidad", datos["entidad"])
-                colB.metric("📅 Fecha", datos["fecha"])
-                colC.metric("💵 Monto", datos["monto"])
-                colD.metric("📂 Categoría", datos["categoria"])
-                guardar_factura(datos["entidad"], datos["fecha"], datos["monto"], datos["categoria"])
-            except Exception as e:
-                st.error(f"Error al procesar la imagen: {e}")
+col1, col2 = st.columns([1, 1])
 
-# Mostrar historial debajo, en la misma vista
-mostrar_historial()
+with col1:
+    st.subheader("📤 Sube tu recibo")
+    uploaded_file = st.file_uploader("Arrastra o sube una imagen (JPG, PNG)", type=['png', 'jpg', 'jpeg'])
+    if uploaded_file:
+        imagen = Image.open(uploaded_file)
+        st.image(imagen, caption='Recibo subido', width=280)
+        if st.button("Analizar Factura"):
+            with st.spinner("Leyendo factura..."):
+                prompt = """
+                Analiza esta factura y devuelve la información en formato JSON válido.
+                Usa estas claves exactas: "entidad", "fecha", "monto", "categoria".
+                Si no encuentras un dato, pon "No detectado".
+                Devuelve solo el JSON, sin texto adicional.
+                """
+                try:
+                    response = model.generate_content([prompt, imagen])
+                    texto = response.text.strip()
+                    if texto.startswith("```"):
+                        texto = texto.strip("`").replace("json", "").strip()
+                    datos = eval(texto)
+                    st.success("✅ Datos extraídos")
+                    colA, colB, colC, colD = st.columns(4)
+                    colA.metric("🏢 Entidad", datos["entidad"])
+                    colB.metric("📅 Fecha", datos["fecha"])
+                    colC.metric("💵 Monto", datos["monto"])
+                    colD.metric("📂 Categoría", datos["categoria"])
+                    guardar_factura(datos["entidad"], datos["fecha"], datos["monto"], datos["categoria"])
+                except Exception as e:
+                    st.error(f"Error al procesar la imagen: {e}")
+
+with col2:
+    mostrar_historial()
