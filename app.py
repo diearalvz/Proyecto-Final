@@ -10,7 +10,7 @@ import sqlite3
 st.set_page_config(page_title="FactuTrack", layout="wide")
 
 # ==========================
-# ESTILO VISUAL PREMIUM COMPACTO
+# ESTILO VISUAL PREMIUM
 # ==========================
 st.markdown(
     """
@@ -32,6 +32,14 @@ st.markdown(
         margin-top: 0; margin-bottom: 1em;
     }
     h2, h3 { color: #FFD700; }
+    .card {
+        background-color: #1a1a1a;
+        border: 1px solid #FFD700;
+        border-radius: 8px;
+        padding: 1em;
+        margin-bottom: 1em;
+        box-shadow: 0 0 10px rgba(255, 215, 0, 0.3);
+    }
     </style>
     """,
     unsafe_allow_html=True
@@ -42,7 +50,7 @@ st.markdown(
 # ==========================
 st.markdown(
     """
-    <div class="titulo-principal">FactuTrack</div>
+    <div class="titulo-principal">💰 FactuTrack</div>
     <div class="subtitulo">De recibos a datos útiles</div>
     """,
     unsafe_allow_html=True
@@ -98,7 +106,7 @@ conn.commit()
 if "usuario" not in st.session_state:
     st.session_state["usuario"] = ""
 
-st.session_state["usuario"] = st.text_input("👤 Usuario:")
+st.session_state["usuario"] = st.text_input("👤 Ingresa tu usuario o correo:")
 
 if not st.session_state["usuario"]:
     st.warning("Por favor ingresa tu usuario para continuar.")
@@ -107,19 +115,20 @@ if not st.session_state["usuario"]:
 # ==========================
 # FUNCIONES
 # ==========================
-def guardar_factura(Entidad, Fecha, Monto, Categoria):
+def guardar_factura(entidad, fecha, monto, categoria):
+    # Filtro robusto: incluye categoría
     c.execute('''
         SELECT * FROM facturas
-        WHERE usuario=? AND entidad=? AND fecha=? AND monto=?
-    ''', (st.session_state["usuario"], Entidad, Fecha, Monto))
-    Duplicado = c.fetchone()
-    if Duplicado:
+        WHERE usuario=? AND entidad=? AND fecha=? AND monto=? AND categoria=?
+    ''', (st.session_state["usuario"], entidad, fecha, monto, categoria))
+    duplicado = c.fetchone()
+    if duplicado:
         st.warning("⚠️ Factura duplicada detectada.")
     else:
         c.execute('''
             INSERT INTO facturas (usuario, entidad, fecha, monto, categoria)
             VALUES (?, ?, ?, ?, ?)
-        ''', (st.session_state["usuario"], Entidad, Fecha, Monto, Categoria))
+        ''', (st.session_state["usuario"], entidad, fecha, monto, categoria))
         conn.commit()
         st.success("✅ Factura guardada en tu historial.")
 
@@ -145,10 +154,10 @@ def mostrar_historial():
         for _, row in df.iterrows():
             cols = st.columns([1, 3, 2, 2, 2])
             check = cols[0].checkbox("", key=row["ID"])
-            cols[1].write(row["Entidad"])
+            cols[1].write(row["Entidad"].title())  # Mayúscula inicial
             cols[2].write(row["Fecha"])
             cols[3].write(f"{row['Monto']:,.2f}")
-            cols[4].write(row["Categoría"])
+            cols[4].write(row["Categoría"].title())  # Mayúscula inicial
             if check:
                 facturas_a_borrar.append(row["ID"])
         st.info(f"💵 Total acumulado: {total:,.2f}")
@@ -187,9 +196,18 @@ with col1:
                     datos = eval(texto)
                     st.success("✅ Datos extraídos")
 
-                    # Mostrar datos en mini tabla temporal
-                    df_temp = pd.DataFrame([datos], columns=["entidad", "fecha", "monto", "categoria"])
-                    st.table(df_temp)
+                    # Visualización estilizada en tarjeta
+                    st.markdown(
+                        f"""
+                        <div class="card">
+                            <p><b>🏢 Entidad:</b> {datos['entidad'].title()}</p>
+                            <p><b>📅 Fecha:</b> {datos['fecha']}</p>
+                            <p><b>💵 Monto:</b> {datos['monto']}</p>
+                            <p><b>📂 Categoría:</b> {datos['categoria'].title()}</p>
+                        </div>
+                        """,
+                        unsafe_allow_html=True
+                    )
 
                     guardar_factura(datos["entidad"], datos["fecha"], datos["monto"], datos["categoria"])
                 except Exception as e:
