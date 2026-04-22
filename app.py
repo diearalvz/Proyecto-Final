@@ -20,19 +20,19 @@ with open("style.css") as f:
     st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
 
 # ==========================
-# HEADER CON NAVEGACIÓN
+# HEADER PREMIUM
 # ==========================
-col1, col2, col3, col4, col5 = st.columns([2,1,1,1,1])
-with col1:
-    st.markdown('<div class="titulo">📊 FactuTrack</div>', unsafe_allow_html=True)
-with col2:
-    st.button("Inicio")
-with col3:
-    st.button("Reportes")
-with col4:
-    st.button("Admin")
-with col5:
-    st.button("Perfil")
+st.markdown("""
+<div style="display:flex; justify-content:space-between; align-items:center; background-color:#1A1A1D; padding:15px; border-radius:10px; box-shadow:0 2px 8px rgba(212,175,55,0.3);">
+    <div style="font-size:1.8em; font-weight:bold; color:#D4AF37;">📊 FactuTrack</div>
+    <div style="display:flex; gap:20px;">
+        <button style="background:#D4AF37; color:#0E0E10; border:none; padding:8px 16px; border-radius:8px; font-weight:bold;">Inicio</button>
+        <button style="background:#D4AF37; color:#0E0E10; border:none; padding:8px 16px; border-radius:8px; font-weight:bold;">Reportes</button>
+        <button style="background:#D4AF37; color:#0E0E10; border:none; padding:8px 16px; border-radius:8px; font-weight:bold;">Admin</button>
+        <button style="background:#D4AF37; color:#0E0E10; border:none; padding:8px 16px; border-radius:8px; font-weight:bold;">Perfil</button>
+    </div>
+</div>
+""", unsafe_allow_html=True)
 
 st.markdown('<div class="sub">De recibos a datos útiles</div>', unsafe_allow_html=True)
 
@@ -93,30 +93,30 @@ def guardar(entidad, fecha, monto, categoria):
     conn.commit()
 
 # ==========================
-# TARJETAS RESUMEN (CORREGIDAS)
+# TARJETAS RESUMEN
 # ==========================
 df = obtener_df()
-
 if not df.empty and "monto" in df.columns:
     total = pd.to_numeric(df["monto"], errors="coerce").sum()
 else:
     total = 0.0
-
 count = len(df) if not df.empty else 0
 
 col1, col2 = st.columns(2)
 with col1:
-    st.markdown(
-        f'<div class="card"><h3 style="color:#D4AF37;">💰 Gasto Total</h3>'
-        f'<p style="font-size:1.5em;">${total:,.0f}</p></div>',
-        unsafe_allow_html=True
-    )
+    st.markdown(f"""
+    <div class="card" style="text-align:center;">
+        <h3 style="color:#D4AF37;">💰 Gasto Total</h3>
+        <p style="font-size:2em; font-weight:bold;">${total:,.0f}</p>
+    </div>
+    """, unsafe_allow_html=True)
 with col2:
-    st.markdown(
-        f'<div class="card"><h3 style="color:#D4AF37;">📄 Facturas</h3>'
-        f'<p style="font-size:1.5em;">{count}</p></div>',
-        unsafe_allow_html=True
-    )
+    st.markdown(f"""
+    <div class="card" style="text-align:center;">
+        <h3 style="color:#D4AF37;">📄 Facturas</h3>
+        <p style="font-size:2em; font-weight:bold;">{count}</p>
+    </div>
+    """, unsafe_allow_html=True)
 
 # ==========================
 # SECCIÓN: AGREGAR FACTURA
@@ -181,7 +181,6 @@ if not df.empty:
     with col1:
         st.dataframe(df[["entidad","fecha","categoria","monto"]], use_container_width=True)
     with col2:
-        # Usamos una paleta válida y personalizada
         fig = px.pie(
             df,
             names="categoria",
