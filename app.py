@@ -2,6 +2,7 @@ import streamlit as st
 import sqlite3
 import pandas as pd
 from PIL import Image
+import os
 
 # ==========================
 # CONFIG
@@ -81,7 +82,10 @@ button:hover {
 # ==========================
 col_logo, col_title = st.columns([1,5])
 with col_logo:
-    st.image("logo_factutrack.png", use_container_width=False)
+    if os.path.exists("logo_factutrack.png"):
+        st.image("logo_factutrack.png", use_container_width=False)
+    else:
+        st.write("📊")  # fallback si no está el logo
 with col_title:
     st.markdown("<h2>FactuTrack</h2>", unsafe_allow_html=True)
     st.markdown("<p>Tus gastos, simples y claros</p>", unsafe_allow_html=True)
