@@ -64,7 +64,7 @@ conn.commit()
 # ==========================
 # LOGIN SIMPLE
 # ==========================
-usuario = st.text_input("👤 Usuario")
+usuario = st.text_input("👤 Ingresa tu usuario")
 login_ok = st.button("Ingresar")
 
 if not usuario or not login_ok:
