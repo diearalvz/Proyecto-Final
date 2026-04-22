@@ -46,8 +46,8 @@ st.markdown(
 # ==========================
 st.markdown(
     """
-    <div class="titulo-principal">💰 FactuTrack</div>
-    <div class="subtitulo">De recibos a datos útiles</div>
+    <div class="titulo-principal">FactuTrack</div>
+    <div class="subtitulo">De recibos, a datos útiles con IA</div>
     """,
     unsafe_allow_html=True
 )
@@ -95,7 +95,7 @@ conn.commit()
 if "usuario" not in st.session_state:
     st.session_state["usuario"] = ""
 
-st.session_state["usuario"] = st.text_input("👤 Ingresa tu usuario o correo:")
+st.session_state["usuario"] = st.text_input("👤 Ingresa tu usuario:")
 
 if not st.session_state["usuario"]:
     st.warning("Por favor ingresa tu usuario para continuar.")
