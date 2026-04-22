@@ -10,7 +10,7 @@ import sqlite3
 st.set_page_config(page_title="FactuTrack", layout="wide")
 
 # ==========================
-# ESTILO VISUAL PREMIUM
+# ESTILO VISUAL PREMIUM COMPACTO
 # ==========================
 st.markdown(
     """
@@ -18,23 +18,23 @@ st.markdown(
     body { background-color: #0e0e0e; color: #FFD700; }
     .stButton>button {
         background-color: #FFD700; color: #000; font-weight: bold;
-        border-radius: 8px; padding: 0.6em 1.2em;
+        border-radius: 8px; padding: 0.5em 1em;
     }
     .titulo-principal {
-        font-size: 3em; color: #FFD700; text-align: center;
-        text-shadow: 0 0 20px #FFD700, 0 0 40px #FFA500;
+        font-size: 2.5em; color: #FFD700; text-align: center;
+        text-shadow: 0 0 15px #FFD700, 0 0 30px #FFA500;
         font-weight: bold; margin-bottom: 0.1em;
         font-family: 'Montserrat', sans-serif;
     }
     .subtitulo {
-        font-size: 1.5em; color: #FFD700; text-align: center;
+        font-size: 1.2em; color: #FFD700; text-align: center;
         font-style: italic; font-family: 'Georgia', serif;
         margin-top: 0; margin-bottom: 1em;
     }
     h2, h3 { color: #FFD700; }
     .stMetric {
-        background-color: #1a1a1a; border-radius: 10px; padding: 1em;
-        box-shadow: 0 0 10px rgba(255, 215, 0, 0.3);
+        background-color: #1a1a1a; border-radius: 8px; padding: 0.6em;
+        box-shadow: 0 0 8px rgba(255, 215, 0, 0.3);
     }
     </style>
     """,
@@ -46,8 +46,8 @@ st.markdown(
 # ==========================
 st.markdown(
     """
-    <div class="titulo-principal">FactuTrack</div>
-    <div class="subtitulo">De recibos, a datos útiles con IA</div>
+    <div class="titulo-principal">💰 FactuTrack</div>
+    <div class="subtitulo">De recibos a datos útiles</div>
     """,
     unsafe_allow_html=True
 )
@@ -78,7 +78,6 @@ except Exception as e:
 conn = sqlite3.connect("facturas.db")
 c = conn.cursor()
 
-# Crear tabla si no existe
 c.execute('''
     CREATE TABLE IF NOT EXISTS facturas (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -90,7 +89,6 @@ c.execute('''
     )
 ''')
 
-# Verificar si la columna 'usuario' existe, y si no, agregarla
 c.execute("PRAGMA table_info(facturas)")
 columns = [col[1] for col in c.fetchall()]
 if "usuario" not in columns:
@@ -104,7 +102,7 @@ conn.commit()
 if "usuario" not in st.session_state:
     st.session_state["usuario"] = ""
 
-st.session_state["usuario"] = st.text_input("👤 Usuario:")
+st.session_state["usuario"] = st.text_input("👤 Ingresa tu usuario o correo:")
 
 if not st.session_state["usuario"]:
     st.warning("Por favor ingresa tu usuario para continuar.")
@@ -140,23 +138,12 @@ def mostrar_historial():
             st.warning(f"Error al convertir montos: {e}")
         total = df["Monto"].sum()
         st.subheader("🕓 Historial de Facturas")
-        facturas_a_borrar = []
-        cols = st.columns([1, 3, 2, 2, 2])
-        cols[0].write("Borrar")
-        cols[1].write("Entidad")
-        cols[2].write("Fecha")
-        cols[3].write("Monto")
-        cols[4].write("Categoría")
-        for _, row in df.iterrows():
-            cols = st.columns([1, 3, 2, 2, 2])
-            check = cols[0].checkbox("", key=row["ID"])
-            cols[1].write(row["Entidad"])
-            cols[2].write(row["Fecha"])
-            cols[3].write(f"{row['Monto']:,.2f}")
-            cols[4].write(row["Categoría"])
-            if check:
-                facturas_a_borrar.append(row["ID"])
+        st.dataframe(df, use_container_width=True, height=300)
         st.info(f"💵 Total acumulado: {total:,.2f}")
+        facturas_a_borrar = []
+        for _, row in df.iterrows():
+            if st.checkbox(f"Borrar {row['Entidad']} - {row['Fecha']}", key=row["ID"]):
+                facturas_a_borrar.append(row["ID"])
         if facturas_a_borrar and st.button("🗑️ Borrar Facturas Seleccionadas"):
             for fid in facturas_a_borrar:
                 c.execute("DELETE FROM facturas WHERE id=?", (fid,))
@@ -166,15 +153,16 @@ def mostrar_historial():
         st.info("No tienes facturas registradas aún.")
 
 # ==========================
-# INTERFAZ PRINCIPAL
+# INTERFAZ PRINCIPAL CON TABS
 # ==========================
-col1, col2 = st.columns([1, 1])
-with col1:
+tab1, tab2 = st.tabs(["📤 Subir Recibo", "🕓 Historial"])
+
+with tab1:
     st.subheader("📤 Sube tu recibo")
     uploaded_file = st.file_uploader("Arrastra o sube una imagen (JPG, PNG)", type=['png', 'jpg', 'jpeg'])
     if uploaded_file:
         imagen = Image.open(uploaded_file)
-        st.image(imagen, caption='Recibo subido', use_column_width=True)
+        st.image(imagen, caption='Recibo subido', width=300)
         if st.button("Analizar Factura"):
             with st.spinner("Leyendo factura..."):
                 prompt = """
@@ -190,15 +178,14 @@ with col1:
                         texto = texto.strip("`").replace("json", "").strip()
                     datos = eval(texto)
                     st.success("✅ Datos extraídos")
-                    colA, colB = st.columns(2)
-                    with colA:
-                        st.metric("🏢 Entidad", datos["entidad"])
-                        st.metric("📅 Fecha", datos["fecha"])
-                    with colB:
-                        st.metric("💵 Monto", datos["monto"])
-                        st.metric("📂 Categoría", datos["categoria"])
+                    colA, colB, colC, colD = st.columns(4)
+                    colA.metric("🏢 Entidad", datos["entidad"])
+                    colB.metric("📅 Fecha", datos["fecha"])
+                    colC.metric("💵 Monto", datos["monto"])
+                    colD.metric("📂 Categoría", datos["categoria"])
                     guardar_factura(datos["entidad"], datos["fecha"], datos["monto"], datos["categoria"])
                 except Exception as e:
                     st.error(f"Error al procesar la imagen: {e}")
-with col2:
+
+with tab2:
     mostrar_historial()
