@@ -10,7 +10,7 @@ import sqlite3
 st.set_page_config(page_title="FactuTrack", layout="wide")
 
 # ==========================
-# ESTILO VISUAL PREMIUM
+# ESTILO VISUAL PREMIUM COMPACTO
 # ==========================
 st.markdown(
     """
@@ -33,8 +33,9 @@ st.markdown(
     }
     h2, h3 { color: #FFD700; }
     .stMetric {
-        background-color: #1a1a1a; border-radius: 8px; padding: 0.6em;
-        box-shadow: 0 0 8px rgba(255, 215, 0, 0.3);
+        background-color: #1a1a1a; border-radius: 6px; padding: 0.4em;
+        font-size: 0.9em;
+        box-shadow: 0 0 6px rgba(255, 215, 0, 0.3);
     }
     </style>
     """,
@@ -46,8 +47,8 @@ st.markdown(
 # ==========================
 st.markdown(
     """
-    <div class="titulo-principal">FactuTrack</div>
-    <div class="subtitulo">De recibos a datos útiles con IA</div>
+    <div class="titulo-principal">💰 FactuTrack</div>
+    <div class="subtitulo">De recibos a datos útiles</div>
     """,
     unsafe_allow_html=True
 )
@@ -128,18 +129,39 @@ def guardar_factura(entidad, fecha, monto, categoria):
         st.success("✅ Factura guardada en tu historial.")
 
 def mostrar_historial():
-    c.execute("SELECT entidad, fecha, monto, categoria FROM facturas WHERE usuario=?", (st.session_state["usuario"],))
+    c.execute("SELECT id, entidad, fecha, monto, categoria FROM facturas WHERE usuario=?", (st.session_state["usuario"],))
     rows = c.fetchall()
     if rows:
-        df = pd.DataFrame(rows, columns=["Entidad", "Fecha", "Monto", "Categoría"])
+        df = pd.DataFrame(rows, columns=["ID", "Entidad", "Fecha", "Monto", "Categoría"])
         try:
             df["Monto"] = df["Monto"].apply(lambda x: float(str(x).replace(".", "").replace(",", ".")))
         except Exception as e:
             st.warning(f"Error al convertir montos: {e}")
         total = df["Monto"].sum()
         st.subheader("🕓 Historial de Facturas")
-        st.dataframe(df, use_container_width=True, height=300)
+        facturas_a_borrar = []
+        # Mostrar tabla con checkbox en primera columna
+        cols = st.columns([1, 3, 2, 2, 2])
+        cols[0].write("Borrar")
+        cols[1].write("Entidad")
+        cols[2].write("Fecha")
+        cols[3].write("Monto")
+        cols[4].write("Categoría")
+        for _, row in df.iterrows():
+            cols = st.columns([1, 3, 2, 2, 2])
+            check = cols[0].checkbox("", key=row["ID"])
+            cols[1].write(row["Entidad"])
+            cols[2].write(row["Fecha"])
+            cols[3].write(f"{row['Monto']:,.2f}")
+            cols[4].write(row["Categoría"])
+            if check:
+                facturas_a_borrar.append(row["ID"])
         st.info(f"💵 Total acumulado: {total:,.2f}")
+        if facturas_a_borrar and st.button("🗑️ Borrar Facturas Seleccionadas"):
+            for fid in facturas_a_borrar:
+                c.execute("DELETE FROM facturas WHERE id=?", (fid,))
+            conn.commit()
+            st.success("✅ Facturas eliminadas correctamente.")
     else:
         st.info("No tienes facturas registradas aún.")
 
@@ -153,7 +175,7 @@ with col1:
     uploaded_file = st.file_uploader("Arrastra o sube una imagen (JPG, PNG)", type=['png', 'jpg', 'jpeg'])
     if uploaded_file:
         imagen = Image.open(uploaded_file)
-        st.image(imagen, caption='Recibo subido', width=280)
+        st.image(imagen, caption='Recibo subido', width=250)  # Imagen más pequeña
         if st.button("Analizar Factura"):
             with st.spinner("Leyendo factura..."):
                 prompt = """
@@ -169,6 +191,7 @@ with col1:
                         texto = texto.strip("`").replace("json", "").strip()
                     datos = eval(texto)
                     st.success("✅ Datos extraídos")
+                    # Métricas más compactas
                     colA, colB, colC, colD = st.columns(4)
                     colA.metric("🏢 Entidad", datos["entidad"])
                     colB.metric("📅 Fecha", datos["fecha"])
