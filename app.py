@@ -12,11 +12,14 @@ import re
 st.set_page_config(page_title="FactuTrack", layout="wide")
 
 # ==========================
-# CARGAR CSS
+# CSS
 # ==========================
 def cargar_css():
-    with open("style.css") as f:
-        st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
+    try:
+        with open("style.css") as f:
+            st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
+    except:
+        pass
 
 cargar_css()
 
@@ -33,8 +36,12 @@ st.markdown("""
 # ==========================
 # API GEMINI
 # ==========================
-genai.configure(api_key=st.secrets["GOOGLE_API_KEY"])
-model = genai.GenerativeModel("gemini-1.5-flash")
+try:
+    genai.configure(api_key=st.secrets["GOOGLE_API_KEY"])
+    model = genai.GenerativeModel("gemini-1.5-flash")
+except:
+    st.error("⚠️ Configura tu API KEY en secrets")
+    st.stop()
 
 # ==========================
 # DB
@@ -55,7 +62,7 @@ categoria TEXT
 conn.commit()
 
 # ==========================
-# LOGIN SIMPLE
+# LOGIN
 # ==========================
 usuario = st.text_input("👤 Ingresa tu usuario")
 
@@ -83,11 +90,11 @@ def guardar(entidad, fecha, monto, categoria):
 # ==========================
 df = obtener_df()
 
-total = df["monto"].sum() if not df.empty else 0
+total = float(df["monto"].sum()) if not df.empty else 0.0
 cantidad = len(df)
 
 # ==========================
-# KPIs
+# KPIs (CORREGIDO)
 # ==========================
 col1, col2 = st.columns(2)
 
@@ -108,15 +115,11 @@ with col2:
     """, unsafe_allow_html=True)
 
 # ==========================
-# SUBIR + RESULTADO
+# SUBIDA + RESULTADO
 # ==========================
 col1, col2 = st.columns(2)
 
 imagen = None
-entidad = ""
-fecha = ""
-monto = 0
-categoria = ""
 
 with col1:
     st.markdown('<div class="card">', unsafe_allow_html=True)
@@ -124,20 +127,27 @@ with col1:
     opcion = st.radio("Método", ["Subir imagen", "Tomar foto"])
 
     if opcion == "Subir imagen":
-        file = st.file_uploader("", type=["jpg","png","jpeg"])
+        file = st.file_uploader("Selecciona imagen", type=["jpg","png","jpeg"])
         if file:
             imagen = Image.open(file)
-            st.image(imagen)
+            st.image(imagen, use_container_width=True)
 
     else:
-        foto = st.camera_input("")
+        foto = st.camera_input("Tomar foto")
         if foto:
             imagen = Image.open(foto)
-            st.image(imagen)
+            st.image(imagen, use_container_width=True)
 
     st.markdown('</div>', unsafe_allow_html=True)
 
+# VARIABLES SEGURAS
+entidad = "—"
+fecha = "—"
+monto = 0
+categoria = "—"
+
 with col2:
+
     if imagen and st.button("Analizar y Guardar"):
 
         prompt = """
@@ -152,7 +162,7 @@ with col2:
 
         try:
             r = model.generate_content([prompt, imagen])
-            texto = re.sub(r"```json|```","", r.text).strip()
+            texto = re.sub(r"```json|```", "", r.text).strip()
             data = json.loads(texto)
 
             entidad = data.get("entidad","No detectado")
@@ -162,17 +172,17 @@ with col2:
 
             guardar(entidad, fecha, monto, categoria)
 
-            st.success("Factura guardada")
+            st.success("✅ Factura guardada")
 
-        except:
-            st.error("Error leyendo factura")
+        except Exception as e:
+            st.error("❌ Error leyendo factura")
 
     st.markdown(f"""
     <div class="card">
         <h4>📄 Datos detectados</h4>
         <p><b>Entidad:</b> {entidad}</p>
         <p><b>Fecha:</b> {fecha}</p>
-        <p><b>Monto:</b> ${monto}</p>
+        <p><b>Monto:</b> ${monto:,.0f}</p>
         <p><b>Categoría:</b> {categoria}</p>
     </div>
     """, unsafe_allow_html=True)
@@ -189,7 +199,7 @@ with col1:
     if not df.empty:
         st.dataframe(df, use_container_width=True)
     else:
-        st.info("No hay datos")
+        st.info("No hay datos aún")
 
     st.markdown('</div>', unsafe_allow_html=True)
 
@@ -198,6 +208,7 @@ with col2:
     st.write("📊 Gastos por categoría")
 
     if not df.empty:
-        st.bar_chart(df.groupby("categoria")["monto"].sum())
+        graf = df.groupby("categoria")["monto"].sum()
+        st.bar_chart(graf)
 
     st.markdown('</div>', unsafe_allow_html=True)
