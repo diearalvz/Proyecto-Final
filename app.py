@@ -60,20 +60,6 @@ body {
     margin-bottom:1em;
     box-shadow:0 2px 8px rgba(0,0,0,0.1);
 }
-
-button {
-    background-color: var(--color-secundario);
-    color: white;
-    border: none;
-    padding: 10px 20px;
-    border-radius: 5px;
-    font-weight: 600;
-}
-
-button:hover {
-    background-color: var(--color-acento);
-    color: var(--color-primario);
-}
 </style>
 """, unsafe_allow_html=True)
 
@@ -85,7 +71,7 @@ with col_logo:
     if os.path.exists("logo_factutrack.png"):
         st.image("logo_factutrack.png", use_container_width=False)
     else:
-        st.write("📊")  # fallback si no está el logo
+        st.write("📊")  # fallback seguro si no está el logo
 with col_title:
     st.markdown("<h2>FactuTrack</h2>", unsafe_allow_html=True)
     st.markdown("<p>Tus gastos, simples y claros</p>", unsafe_allow_html=True)
@@ -160,7 +146,8 @@ if imagen:
     img = Image.open(imagen)
     st.image(img, use_container_width=True)
     if st.button("Analizar Factura"):
-        st.success("✅ Aquí iría la integración con IA para extraer datos")
+        # Aquí se integrará la IA para extraer datos
+        st.success("✅ Factura cargada correctamente (pendiente análisis IA).")
 
 # ==========================
 # FACTURAS RECIENTES
