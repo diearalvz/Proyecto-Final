@@ -143,9 +143,10 @@ with col2:
         if facturas_a_borrar and st.button("🗑️ Borrar seleccionadas"):
             borrar_facturas(facturas_a_borrar)
             st.success("✅ Facturas eliminadas correctamente.")
-            st.experimental_rerun()
+            df = obtener_df()  # refresca el dataframe
 
-        st.bar_chart(df.groupby("categoria")["monto"].sum())
+        if not df.empty:
+            st.bar_chart(df.groupby("categoria")["monto"].sum())
     else:
         st.info("Sin registros aún")
     st.markdown('</div>', unsafe_allow_html=True)
@@ -153,43 +154,35 @@ with col2:
 # SUBIDA + RESULTADO IA (izquierda)
 with col1:
     st.markdown('<div class="card"><h4>📤 Subir Recibo</h4>', unsafe_allow_html=True)
-    metodo = st.radio("Selecciona método", ["Archivo", "Foto"])
-    imagen = None
-    if metodo == "Archivo":
-        file = st.file_uploader("Selecciona imagen", type=["jpg","png","jpeg"])
-        if file:
-            imagen = Image.open(file)
-            st.image(imagen, use_container_width=True)
-    else:
-        foto = st.camera_input("Tomar foto")
-        if foto:
-            imagen = Image.open(foto)
-            st.image(imagen, use_container_width=True)
+    imagen = st.file_uploader("Selecciona imagen", type=["jpg","png","jpeg"])
+    if imagen:
+        img = Image.open(imagen)
+        st.image(img, use_container_width=True)
 
-    if imagen and st.button("Analizar Factura"):
-        if not model:
-            st.error("API no disponible")
-        else:
-            try:
-                prompt = "Devuelve SOLO JSON con: entidad, fecha, monto, categoria"
-                r = model.generate_content([prompt, imagen])
-                texto = re.sub(r"```json|```","", r.text).strip()
-                data = json.loads(texto)
-                entidad = data.get("entidad","No detectado")
-                fecha = data.get("fecha","No detectado")
-                monto = data.get("monto",0)
-                categoria = data.get("categoria","Otros")
-                guardar(entidad, fecha, monto, categoria)
-                st.success("✅ Guardado correctamente")
-                st.markdown(f"""
-                <div class="card">
-                    <h4>📄 Datos detectados</h4>
-                    <p><b>Entidad:</b> {entidad.title()}</p>
-                    <p><b>Fecha:</b> {fecha}</p>
-                    <p><b>Monto:</b> ${float(monto):,.0f}</p>
-                    <p><b>Categoría:</b> {categoria.title()}</p>
-                </div>
-                """, unsafe_allow_html=True)
-            except Exception:
-                st.warning("⚠️ Error o límite de uso alcanzado. Intenta de nuevo en unos segundos.")
+        if st.button("Analizar Factura"):
+            if not model:
+                st.error("API no disponible")
+            else:
+                try:
+                    prompt = "Devuelve SOLO JSON con: entidad, fecha, monto, categoria"
+                    r = model.generate_content([prompt, img])
+                    texto = re.sub(r"```json|```","", r.text).strip()
+                    data = json.loads(texto)
+                    entidad = data.get("entidad","No detectado")
+                    fecha = data.get("fecha","No detectado")
+                    monto = data.get("monto",0)
+                    categoria = data.get("categoria","Otros")
+                    guardar(entidad, fecha, monto, categoria)
+                    st.success("✅ Guardado correctamente")
+                    st.markdown(f"""
+                    <div class="card">
+                        <h4>📄 Datos detectados</h4>
+                        <p><b>Entidad:</b> {entidad.title()}</p>
+                        <p><b>Fecha:</b> {fecha}</p>
+                        <p><b>Monto:</b> ${float(monto):,.0f}</p>
+                        <p><b>Categoría:</b> {categoria.title()}</p>
+                    </div>
+                    """, unsafe_allow_html=True)
+                except Exception:
+                    st.warning("⚠️ Error o límite de uso alcanzado. Intenta de nuevo en unos segundos.")
     st.markdown('</div>', unsafe_allow_html=True)
