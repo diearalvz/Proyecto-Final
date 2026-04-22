@@ -3,219 +3,215 @@ import google.generativeai as genai
 from PIL import Image
 import pandas as pd
 import sqlite3
+import json
+import re
+from datetime import datetime
+import plotly.express as px
 
 # ==========================
-# CONFIGURACIÓN DE LA PÁGINA
+# CONFIGURACIÓN GENERAL
 # ==========================
 st.set_page_config(page_title="FactuTrack", layout="wide")
 
 # ==========================
-# ESTILO VISUAL PREMIUM
+# ESTILO PREMIUM
 # ==========================
-st.markdown(
-    """
-    <style>
-    body { background-color: #0e0e0e; color: #FFD700; }
-    .stButton>button {
-        background-color: #FFD700; color: #000; font-weight: bold;
-        border-radius: 8px; padding: 0.5em 1em;
-    }
-    .titulo-principal {
-        font-size: 2em; color: #FFD700; text-align: center;
-        text-shadow: 0 0 15px #FFD700, 0 0 30px #FFA500;
-        font-weight: bold; margin-bottom: 0.1em;
-        font-family: 'Montserrat', sans-serif;
-    }
-    .subtitulo {
-        font-size: 1.1em; color: #FFD700; text-align: center;
-        font-style: italic; font-family: 'Georgia', serif;
-        margin-top: 0; margin-bottom: 1em;
-    }
-    h2, h3 { color: #FFD700; }
-    .card {
-        background-color: #1a1a1a;
-        border: 1px solid #FFD700;
-        border-radius: 8px;
-        padding: 1em;
-        margin-bottom: 1em;
-        box-shadow: 0 0 10px rgba(255, 215, 0, 0.3);
-    }
-    </style>
-    """,
-    unsafe_allow_html=True
-)
+st.markdown("""
+<style>
+body {
+    background-color: #0E0E10;
+    color: #E5E5E5;
+    font-family: 'Segoe UI', sans-serif;
+}
+
+header, .css-18e3th9, .css-1d391kg {
+    background-color: #0E0E10 !important;
+}
+
+.titulo {
+    text-align:center;
+    font-size:2.4em;
+    font-weight:bold;
+    color:#D4AF37;
+    margin-bottom:5px;
+}
+
+.sub {
+    text-align:center;
+    color:#A0A0A0;
+    margin-bottom:30px;
+}
+
+.card {
+    background:#1A1A1D;
+    padding:1em;
+    border-radius:12px;
+    box-shadow:0 2px 8px rgba(212,175,55,0.2);
+    margin-bottom:10px;
+}
+
+.total {
+    text-align:center;
+    font-size:1.8em;
+    font-weight:bold;
+    color:#D4AF37;
+    margin:20px 0;
+}
+
+.stButton>button {
+    background:#D4AF37;
+    color:#0E0E10;
+    border-radius:10px;
+    width:100%;
+    padding:0.6em;
+    font-weight:bold;
+}
+
+.stRadio>div {
+    justify-content:center;
+}
+
+input, select, textarea {
+    background-color:#1A1A1D !important;
+    color:#E5E5E5 !important;
+}
+</style>
+""", unsafe_allow_html=True)
 
 # ==========================
-# TÍTULO Y SUBTÍTULO
+# HEADER
 # ==========================
-st.markdown(
-    """
-    <div class="titulo-principal">FactuTrack</div>
-    <div class="subtitulo">De recibos a datos útiles</div>
-    """,
-    unsafe_allow_html=True
-)
+st.markdown('<div class="titulo">📊 FactuTrack</div>', unsafe_allow_html=True)
+st.markdown('<div class="sub">Controla tus gastos de manera inteligente</div>', unsafe_allow_html=True)
 
 # ==========================
-# CONFIGURACIÓN DE LA API
+# API GEMINI
 # ==========================
-try:
-    api_key = st.secrets["GOOGLE_API_KEY"]
-    genai.configure(api_key=api_key)
-    modelos = list(genai.list_models())
-    modelo_valido = None
-    for m in modelos:
-        if "generateContent" in m.supported_generation_methods:
-            modelo_valido = m.name
-            break
-    if not modelo_valido:
-        st.error("No hay modelos disponibles que soporten generateContent en tu cuenta.")
-        st.stop()
-    model = genai.GenerativeModel(model_name=modelo_valido)
-except Exception as e:
-    st.error(f"Error al configurar la API: {e}")
-    st.stop()
+genai.configure(api_key=st.secrets["GOOGLE_API_KEY"])
+model = genai.GenerativeModel("gemini-1.5-flash")
 
 # ==========================
-# BASE DE DATOS LOCAL
+# BASE DE DATOS
 # ==========================
-conn = sqlite3.connect("facturas.db")
+conn = sqlite3.connect("facturas.db", check_same_thread=False)
 c = conn.cursor()
-
-c.execute('''
-    CREATE TABLE IF NOT EXISTS facturas (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        usuario TEXT,
-        entidad TEXT,
-        fecha TEXT,
-        monto TEXT,
-        categoria TEXT
-    )
-''')
-
-c.execute("PRAGMA table_info(facturas)")
-columns = [col[1] for col in c.fetchall()]
-if "usuario" not in columns:
-    c.execute("ALTER TABLE facturas ADD COLUMN usuario TEXT")
-
+c.execute("""
+CREATE TABLE IF NOT EXISTS facturas (
+id INTEGER PRIMARY KEY AUTOINCREMENT,
+usuario TEXT,
+entidad TEXT,
+fecha TEXT,
+monto REAL,
+categoria TEXT
+)
+""")
 conn.commit()
 
 # ==========================
-# LOGIN DE USUARIO
+# LOGIN
 # ==========================
-if "usuario" not in st.session_state:
-    st.session_state["usuario"] = ""
-
-st.session_state["usuario"] = st.text_input("👤 Ingresa tu usuario o correo:")
-
-if not st.session_state["usuario"]:
-    st.warning("Por favor ingresa tu usuario para continuar.")
+usuario = st.text_input("👤 Ingresa tu nombre o correo")
+if not usuario:
     st.stop()
 
 # ==========================
 # FUNCIONES
 # ==========================
-def guardar_factura(entidad, fecha, monto, categoria):
-    # Filtro robusto: incluye categoría
-    c.execute('''
-        SELECT * FROM facturas
-        WHERE usuario=? AND entidad=? AND fecha=? AND monto=? AND categoria=?
-    ''', (st.session_state["usuario"], entidad, fecha, monto, categoria))
-    duplicado = c.fetchone()
-    if duplicado:
-        st.warning("⚠️ Factura duplicada detectada.")
-    else:
-        c.execute('''
-            INSERT INTO facturas (usuario, entidad, fecha, monto, categoria)
-            VALUES (?, ?, ?, ?, ?)
-        ''', (st.session_state["usuario"], entidad, fecha, monto, categoria))
-        conn.commit()
-        st.success("✅ Factura guardada en tu historial.")
+def limpiar_monto(valor):
+    try:
+        return float(str(valor).replace(",", "").replace("$",""))
+    except:
+        return 0.0
 
-def mostrar_historial():
-    c.execute("SELECT id, entidad, fecha, monto, categoria FROM facturas WHERE usuario=?", (st.session_state["usuario"],))
-    rows = c.fetchall()
-    if rows:
-        df = pd.DataFrame(rows, columns=["ID", "Entidad", "Fecha", "Monto", "Categoría"])
-        try:
-            df["Monto"] = df["Monto"].apply(lambda x: float(str(x).replace(".", "").replace(",", ".")))
-        except Exception as e:
-            st.warning(f"Error al convertir montos: {e}")
-        total = df["Monto"].sum()
-        st.subheader("🕓 Historial de Facturas")
-        facturas_a_borrar = []
-        # Tabla con checkbox en primera columna
-        cols = st.columns([1, 3, 2, 2, 2])
-        cols[0].write("Borrar")
-        cols[1].write("Entidad")
-        cols[2].write("Fecha")
-        cols[3].write("Monto")
-        cols[4].write("Categoría")
-        for _, row in df.iterrows():
-            cols = st.columns([1, 3, 2, 2, 2])
-            check = cols[0].checkbox("", key=row["ID"])
-            cols[1].write(row["Entidad"].title())
-            cols[2].write(row["Fecha"])
-            cols[3].write(f"{row['Monto']:,.2f}")
-            cols[4].write(row["Categoría"].title())
-            if check:
-                facturas_a_borrar.append(row["ID"])
-        st.info(f"💵 Total acumulado: {total:,.2f}")
-        if facturas_a_borrar and st.button("🗑️ Borrar Facturas Seleccionadas"):
-            for fid in facturas_a_borrar:
-                c.execute("DELETE FROM facturas WHERE id=?", (fid,))
-            conn.commit()
-            st.success("✅ Facturas eliminadas correctamente.")
-    else:
-        st.info("No tienes facturas registradas aún.")
+def limpiar_fecha(fecha):
+    return str(fecha).replace("/", "-")
+
+def obtener_df():
+    return pd.read_sql_query(
+        "SELECT * FROM facturas WHERE usuario=? ORDER BY id DESC",
+        conn, params=(usuario,)
+    )
+
+def guardar(entidad, fecha, monto, categoria):
+    c.execute("""
+    INSERT INTO facturas (usuario, entidad, fecha, monto, categoria)
+    VALUES (?,?,?,?,?)
+    """,(usuario, entidad, fecha, monto, categoria))
+    conn.commit()
 
 # ==========================
-# INTERFAZ PRINCIPAL EN DOS COLUMNAS
+# SECCIÓN: AGREGAR FACTURA
 # ==========================
-col1, col2 = st.columns([1, 1])
+st.markdown("### 📸 Agregar Nueva Factura")
+col1, col2 = st.columns([1,1])
 
 with col1:
-    st.subheader("📤 Sube tu recibo")
-    uploaded_file = st.file_uploader("Arrastra o sube una imagen (JPG, PNG)", type=['png', 'jpg', 'jpeg'])
-    if uploaded_file:
-        imagen = Image.open(uploaded_file)
-        st.image(imagen, caption='Recibo subido', width=250)
-        if st.button("Analizar Factura"):
-            with st.spinner("Leyendo factura..."):
-                prompt = """
-                Analiza esta factura y devuelve la información en formato JSON válido.
-                Usa estas claves exactas: "entidad", "fecha", "monto", "categoria".
-                Si no encuentras un dato, pon "No detectado".
-                Devuelve solo el JSON, sin texto adicional.
-                """
-                try:
-                    response = model.generate_content([prompt, imagen])
-                    texto = response.text.strip()
-                    if texto.startswith("```"):
-                        texto = texto.strip("`").replace("json", "").strip()
-                    datos = eval(texto)
-                    st.success("✅ Datos extraídos")
-
-                    # Visualización estilizada en tarjeta
-                    st.markdown(
-                        f"""
-                        <div class="card">
-                            <p><b>🏢 Entidad:</b> {datos['entidad'].title()}</p>
-                            <p><b>📅 Fecha:</b> {datos['fecha']}</p>
-                            <p><b>💵 Monto:</b> {datos['monto']}</p>
-                            <p><b>📂 Categoría:</b> {datos['categoria'].title()}</p>
-                        </div>
-                        """,
-                        unsafe_allow_html=True
-                    )
-
-                    guardar_factura(datos["entidad"], datos["fecha"], datos["monto"], datos["categoria"])
-                except Exception as e:
-                    error_msg = str(e)
-                    if "429" in error_msg or "quota" in error_msg.lower():
-                        st.warning("⚠️ Has alcanzado el límite de uso de la API. Intenta de nuevo en unos segundos.")
-                    else:
-                        st.error(f"Error al procesar la imagen: {e}")
+    opcion = st.radio("", ["📁 Subir Imagen", "📸 Tomar Foto"], horizontal=True)
+    imagen = None
+    if opcion == "📁 Subir Imagen":
+        file = st.file_uploader("Selecciona tu recibo", type=["png","jpg","jpeg"])
+        if file:
+            imagen = Image.open(file)
+            st.image(imagen, width=250)
+    else:
+        foto = st.camera_input("Toma una foto")
+        if foto:
+            imagen = Image.open(foto)
+            st.image(imagen, width=250)
 
 with col2:
-    mostrar_historial()
+    st.markdown("#### 🧠 Datos Detectados")
+    entidad = st.text_input("Entidad")
+    fecha = st.text_input("Fecha (YYYY-MM-DD)")
+    monto = st.text_input("Monto")
+    categoria = st.text_input("Categoría")
+
+    if imagen and st.button("Analizar y Guardar"):
+        with st.spinner("Analizando factura..."):
+            prompt = """
+            Devuelve SOLO JSON válido:
+            {
+            "entidad":"",
+            "fecha":"YYYY-MM-DD",
+            "monto":"",
+            "categoria":""
+            }
+            """
+            try:
+                r = model.generate_content([prompt, imagen])
+                texto = re.sub(r"```json|```","", r.text).strip()
+                data = json.loads(texto)
+
+                entidad = data.get("entidad","No detectado")
+                fecha = limpiar_fecha(data.get("fecha"))
+                monto = limpiar_monto(data.get("monto"))
+                categoria = data.get("categoria","otros")
+
+                guardar(entidad, fecha, monto, categoria)
+                st.success("✅ Factura guardada correctamente")
+            except:
+                st.error("❌ No se pudo analizar la factura")
+
+# ==========================
+# SECCIÓN: RESUMEN
+# ==========================
+st.markdown("### 📊 Resumen de Gastos")
+df = obtener_df()
+
+if not df.empty:
+    total = df["monto"].sum()
+    st.markdown(f'<div class="total">💰 Total: ${total:,.0f}</div>', unsafe_allow_html=True)
+
+    col1, col2 = st.columns([2,1])
+    with col1:
+        st.dataframe(df[["entidad","fecha","categoria","monto"]], use_container_width=True)
+    with col2:
+        fig = px.pie(df, names="categoria", values="monto", title="Gastos por Categoría",
+                     color_discrete_sequence=px.colors.sequential.Gold)
+        st.plotly_chart(fig, use_container_width=True)
+
+    st.markdown("#### 📤 Exportar o Ver Reporte Completo")
+    st.button("Exportar")
+    st.button("Ver Reporte Completo")
+else:
+    st.info("Aún no tienes facturas registradas.")
