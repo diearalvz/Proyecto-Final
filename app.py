@@ -181,8 +181,14 @@ if not df.empty:
     with col1:
         st.dataframe(df[["entidad","fecha","categoria","monto"]], use_container_width=True)
     with col2:
-        fig = px.pie(df, names="categoria", values="monto", title="Gastos por Categoría",
-                     color_discrete_sequence=px.colors.sequential.Gold)
+        # Usamos una paleta válida y personalizada
+        fig = px.pie(
+            df,
+            names="categoria",
+            values="monto",
+            title="Gastos por Categoría",
+            color_discrete_sequence=["#D4AF37", "#FFD700", "#B8860B", "#DAA520"]
+        )
         st.plotly_chart(fig, use_container_width=True)
 
     st.markdown("#### 📤 Exportar o Ver Reporte Completo")
