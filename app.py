@@ -93,16 +93,30 @@ def guardar(entidad, fecha, monto, categoria):
     conn.commit()
 
 # ==========================
-# TARJETAS RESUMEN
+# TARJETAS RESUMEN (CORREGIDAS)
 # ==========================
 df = obtener_df()
+
+if not df.empty and "monto" in df.columns:
+    total = pd.to_numeric(df["monto"], errors="coerce").sum()
+else:
+    total = 0.0
+
+count = len(df) if not df.empty else 0
+
 col1, col2 = st.columns(2)
 with col1:
-    total = df["monto"].sum() if not df.empty else 0
-    st.markdown(f'<div class="card"><h3 style="color:#D4AF37;">💰 Gasto Total</h3><p style="font-size:1.5em;">${total:,.0f}</p></div>', unsafe_allow_html=True)
+    st.markdown(
+        f'<div class="card"><h3 style="color:#D4AF37;">💰 Gasto Total</h3>'
+        f'<p style="font-size:1.5em;">${total:,.0f}</p></div>',
+        unsafe_allow_html=True
+    )
 with col2:
-    count = len(df) if not df.empty else 0
-    st.markdown(f'<div class="card"><h3 style="color:#D4AF37;">📄 Facturas</h3><p style="font-size:1.5em;">{count}</p></div>', unsafe_allow_html=True)
+    st.markdown(
+        f'<div class="card"><h3 style="color:#D4AF37;">📄 Facturas</h3>'
+        f'<p style="font-size:1.5em;">{count}</p></div>',
+        unsafe_allow_html=True
+    )
 
 # ==========================
 # SECCIÓN: AGREGAR FACTURA
