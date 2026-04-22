@@ -3,6 +3,9 @@ import sqlite3
 import pandas as pd
 from PIL import Image
 import os
+import json
+import re
+import google.generativeai as genai
 
 # ==========================
 # CONFIG
@@ -93,6 +96,16 @@ usuario = st.session_state["usuario"]
 st.markdown(f"### ¡Hola, {usuario}! 👋 Aquí tienes un resumen simple de tus gastos.")
 
 # ==========================
+# API IA
+# ==========================
+try:
+    genai.configure(api_key=st.secrets["GOOGLE_API_KEY"])
+    model = genai.GenerativeModel("gemini-1.5-flash")
+except:
+    model = None
+    st.warning("⚠️ API no configurada")
+
+# ==========================
 # DB
 # ==========================
 conn = sqlite3.connect("facturas.db", check_same_thread=False)
@@ -121,55 +134,56 @@ def obtener_df():
 df = obtener_df()
 
 # ==========================
-# RESUMEN MENSUAL
+# RESUMEN + UPLOAD EN COLUMNAS
 # ==========================
-total = df["monto"].sum() if not df.empty else 0
-cantidad = len(df)
-categoria_principal = df.groupby("categoria")["monto"].sum().idxmax() if not df.empty else "—"
+col1, col2 = st.columns([1,1])
 
-col1, col2, col3 = st.columns(3)
-col1.markdown(f"""
-<div class='card' style='background-color:var(--color-secundario);color:white;'>
-    <h4>💰 Total gastado</h4>
-    <h2>${total:,.0f}</h2>
-</div>
-""", unsafe_allow_html=True)
+# SUBIR RECIBO (izquierda)
+with col1:
+    st.subheader("📤 Subir recibo")
+    imagen = st.file_uploader("Selecciona imagen", type=["jpg","png","jpeg"])
+    if imagen:
+        img = Image.open(imagen)
+        st.image(img, width=400)  # compacto
+        if st.button("Analizar Factura"):
+            if not model:
+                st.error("API no disponible")
+            else:
+                try:
+                    prompt = "Devuelve SOLO JSON con: entidad, fecha, monto, categoria"
+                    r = model.generate_content([prompt, img])
+                    texto = re.sub(r"```json|```","", r.text).strip()
+                    data = json.loads(texto)
 
-col2.markdown(f"""
-<div class='card' style='background-color:var(--color-secundario);color:white;'>
-    <h4>📄 Facturas registradas</h4>
-    <h2>{cantidad}</h2>
-</div>
-""", unsafe_allow_html=True)
+                    entidad = data.get("entidad","No detectado")
+                    fecha = data.get("fecha","No detectado")
+                    monto = data.get("monto",0)
+                    categoria = data.get("categoria","Otros")
 
-col3.markdown(f"""
-<div class='card' style='background-color:var(--color-secundario);color:white;'>
-    <h4>📊 Categoría principal</h4>
-    <h2>{categoria_principal}</h2>
-</div>
-""", unsafe_allow_html=True)
+                    # Guardar en DB
+                    c.execute("INSERT INTO facturas (usuario, entidad, fecha, monto, categoria) VALUES (?,?,?,?,?)",
+                              (usuario, entidad, fecha, monto, categoria))
+                    conn.commit()
 
-if not df.empty:
-    st.subheader("📊 Distribución por categorías")
-    st.bar_chart(df.groupby("categoria")["monto"].sum())
+                    st.success(f"✅ Factura registrada: {entidad} — {fecha} — ${monto:,.0f} — {categoria}")
+                except Exception:
+                    st.warning("⚠️ Error al analizar la factura. Intenta de nuevo.")
 
-# ==========================
-# SUBIR RECIBO
-# ==========================
-st.subheader("📤 Subir recibo")
-imagen = st.file_uploader("Selecciona imagen", type=["jpg","png","jpeg"])
-if imagen:
-    img = Image.open(imagen)
-    st.image(img, width=400)  # compacto, sin scroll excesivo
-    if st.button("Analizar Factura"):
-        # Aquí se integrará la IA para extraer datos
-        st.success("✅ Factura cargada correctamente (pendiente análisis IA).")
+# RESUMEN + HISTORIAL (derecha)
+with col2:
+    st.subheader("📊 Resumen mensual")
+    total = df["monto"].sum() if not df.empty else 0
+    cantidad = len(df)
+    categoria_principal = df.groupby("categoria")["monto"].sum().idxmax() if not df.empty else "—"
 
-# ==========================
-# FACTURAS RECIENTES
-# ==========================
-st.subheader("🕓 Mis facturas recientes")
-if not df.empty:
-    st.dataframe(df.head(5))
-else:
-    st.info("Sin registros aún")
+    colA, colB, colC = st.columns(3)
+    colA.markdown(f"<div class='card' style='background-color:var(--color-secundario);color:white;'><h4>💰 Total</h4><h2>${total:,.0f}</h2></div>", unsafe_allow_html=True)
+    colB.markdown(f"<div class='card' style='background-color:var(--color-secundario);color:white;'><h4>📄 Facturas</h4><h2>{cantidad}</h2></div>", unsafe_allow_html=True)
+    colC.markdown(f"<div class='card' style='background-color:var(--color-secundario);color:white;'><h4>📊 Categoría</h4><h2>{categoria_principal}</h2></div>", unsafe_allow_html=True)
+
+    st.subheader("🕓 Mis facturas recientes")
+    df = obtener_df()  # refrescar después de inserción
+    if not df.empty:
+        st.dataframe(df.head(5))
+    else:
+        st.info("Sin registros aún")
