@@ -46,8 +46,8 @@ st.markdown(
 # ==========================
 st.markdown(
     """
-    <div class="titulo-principal">FactuTrack</div>
-    <div class="subtitulo">De recibos, a datos útiles con IA</div>
+    <div class="titulo-principal">💰 FactuTrack</div>
+    <div class="subtitulo">De recibos a datos útiles</div>
     """,
     unsafe_allow_html=True
 )
@@ -77,6 +77,8 @@ except Exception as e:
 # ==========================
 conn = sqlite3.connect("facturas.db")
 c = conn.cursor()
+
+# Crear tabla si no existe
 c.execute('''
     CREATE TABLE IF NOT EXISTS facturas (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -87,6 +89,13 @@ c.execute('''
         categoria TEXT
     )
 ''')
+
+# Verificar si la columna 'usuario' existe, y si no, agregarla
+c.execute("PRAGMA table_info(facturas)")
+columns = [col[1] for col in c.fetchall()]
+if "usuario" not in columns:
+    c.execute("ALTER TABLE facturas ADD COLUMN usuario TEXT")
+
 conn.commit()
 
 # ==========================
@@ -95,7 +104,7 @@ conn.commit()
 if "usuario" not in st.session_state:
     st.session_state["usuario"] = ""
 
-st.session_state["usuario"] = st.text_input("👤 Ingresa tu usuario:")
+st.session_state["usuario"] = st.text_input("👤 Ingresa tu usuario o correo:")
 
 if not st.session_state["usuario"]:
     st.warning("Por favor ingresa tu usuario para continuar.")
