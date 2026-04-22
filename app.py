@@ -51,7 +51,7 @@ st.markdown(
 st.markdown(
     """
     <div class="titulo-principal">FactuTrack</div>
-    <div class="subtitulo">De recibos... A datos útiles</div>
+    <div class="subtitulo">De recibos a datos útiles</div>
     """,
     unsafe_allow_html=True
 )
@@ -154,10 +154,10 @@ def mostrar_historial():
         for _, row in df.iterrows():
             cols = st.columns([1, 3, 2, 2, 2])
             check = cols[0].checkbox("", key=row["ID"])
-            cols[1].write(row["Entidad"].title())  # Mayúscula inicial
+            cols[1].write(row["Entidad"].title())
             cols[2].write(row["Fecha"])
             cols[3].write(f"{row['Monto']:,.2f}")
-            cols[4].write(row["Categoría"].title())  # Mayúscula inicial
+            cols[4].write(row["Categoría"].title())
             if check:
                 facturas_a_borrar.append(row["ID"])
         st.info(f"💵 Total acumulado: {total:,.2f}")
@@ -211,7 +211,11 @@ with col1:
 
                     guardar_factura(datos["entidad"], datos["fecha"], datos["monto"], datos["categoria"])
                 except Exception as e:
-                    st.error(f"Error al procesar la imagen: {e}")
+                    error_msg = str(e)
+                    if "429" in error_msg or "quota" in error_msg.lower():
+                        st.warning("⚠️ Has alcanzado el límite de uso de la API. Intenta de nuevo en unos segundos.")
+                    else:
+                        st.error(f"Error al procesar la imagen: {e}")
 
 with col2:
     mostrar_historial()
