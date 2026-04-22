@@ -53,11 +53,10 @@ body {
 }
 
 .card {
-    background-color:#fff;
-    border:1px solid #e0e0e0;
     border-radius:10px;
     padding:1.2em;
     margin-bottom:1em;
+    text-align:center;
     box-shadow:0 2px 8px rgba(0,0,0,0.1);
 }
 </style>
@@ -129,9 +128,26 @@ cantidad = len(df)
 categoria_principal = df.groupby("categoria")["monto"].sum().idxmax() if not df.empty else "—"
 
 col1, col2, col3 = st.columns(3)
-col1.markdown(f"<div class='card'><h4>Total gastado</h4><h2>${total:,.0f}</h2></div>", unsafe_allow_html=True)
-col2.markdown(f"<div class='card'><h4>Facturas registradas</h4><h2>{cantidad}</h2></div>", unsafe_allow_html=True)
-col3.markdown(f"<div class='card'><h4>Categoría principal</h4><h2>{categoria_principal}</h2></div>", unsafe_allow_html=True)
+col1.markdown(f"""
+<div class='card' style='background-color:var(--color-secundario);color:white;'>
+    <h4>💰 Total gastado</h4>
+    <h2>${total:,.0f}</h2>
+</div>
+""", unsafe_allow_html=True)
+
+col2.markdown(f"""
+<div class='card' style='background-color:var(--color-secundario);color:white;'>
+    <h4>📄 Facturas registradas</h4>
+    <h2>{cantidad}</h2>
+</div>
+""", unsafe_allow_html=True)
+
+col3.markdown(f"""
+<div class='card' style='background-color:var(--color-secundario);color:white;'>
+    <h4>📊 Categoría principal</h4>
+    <h2>{categoria_principal}</h2>
+</div>
+""", unsafe_allow_html=True)
 
 if not df.empty:
     st.subheader("📊 Distribución por categorías")
@@ -144,7 +160,7 @@ st.subheader("📤 Subir recibo")
 imagen = st.file_uploader("Selecciona imagen", type=["jpg","png","jpeg"])
 if imagen:
     img = Image.open(imagen)
-    st.image(img, use_container_width=True)
+    st.image(img, width=400)  # compacto, sin scroll excesivo
     if st.button("Analizar Factura"):
         # Aquí se integrará la IA para extraer datos
         st.success("✅ Factura cargada correctamente (pendiente análisis IA).")
