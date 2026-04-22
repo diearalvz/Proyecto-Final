@@ -1,0 +1,76 @@
+/* ======== ESTILO GLOBAL ======== */
+body {
+    background-color: #0E0E10;
+    color: #E5E5E5;
+    font-family: 'Segoe UI', sans-serif;
+}
+
+/* ======== HEADER ======== */
+.titulo {
+    text-align: center;
+    font-size: 2.4em;
+    font-weight: bold;
+    color: #D4AF37;
+    margin-bottom: 5px;
+}
+
+.sub {
+    text-align: center;
+    color: #A0A0A0;
+    margin-bottom: 30px;
+}
+
+/* ======== TARJETAS ======== */
+.card {
+    background: #1A1A1D;
+    padding: 1em;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(212,175,55,0.2);
+    margin-bottom: 10px;
+}
+
+.total {
+    text-align: center;
+    font-size: 1.8em;
+    font-weight: bold;
+    color: #D4AF37;
+    margin: 20px 0;
+}
+
+/* ======== BOTONES ======== */
+.stButton>button {
+    background: #D4AF37;
+    color: #0E0E10;
+    border-radius: 10px;
+    width: 100%;
+    padding: 0.6em;
+    font-weight: bold;
+    border: none;
+    transition: 0.3s;
+}
+
+.stButton>button:hover {
+    background: #E5C96E;
+    color: #0E0E10;
+}
+
+/* ======== RADIO Y INPUTS ======== */
+.stRadio>div {
+    justify-content: center;
+}
+
+input, select, textarea {
+    background-color: #1A1A1D !important;
+    color: #E5E5E5 !important;
+    border: 1px solid #D4AF37 !important;
+    border-radius: 8px !important;
+    padding: 6px !important;
+}
+
+/* ======== TABLAS ======== */
+.dataframe {
+    background-color: #1A1A1D;
+    color: #E5E5E5;
+    border-radius: 8px;
+    padding: 10px;
+}
