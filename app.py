@@ -62,20 +62,25 @@ categoria TEXT
 conn.commit()
 
 # ==========================
-# LOGIN SIMPLE
+# LOGIN PERSISTENTE
 # ==========================
-usuario = st.text_input("👤 Ingresa tu usuario")
-login_ok = st.button("Ingresar")
+if "usuario" not in st.session_state:
+    st.session_state["usuario"] = ""
 
-if not usuario or not login_ok:
+if not st.session_state["usuario"]:
+    usuario = st.text_input("👤 Ingresa tu usuario")
+    if st.button("Ingresar"):
+        st.session_state["usuario"] = usuario
     st.stop()
+
+usuario = st.session_state["usuario"]
 
 # ==========================
 # FUNCIONES
 # ==========================
 def obtener_df():
     df = pd.read_sql_query(
-        "SELECT entidad, fecha, monto, categoria FROM facturas WHERE usuario=? ORDER BY rowid DESC",
+        "SELECT id, entidad, fecha, monto, categoria FROM facturas WHERE usuario=? ORDER BY rowid DESC",
         conn, params=(usuario,)
     )
     if not df.empty:
@@ -94,6 +99,10 @@ def guardar(entidad, fecha, monto, categoria):
               (usuario, entidad, fecha, monto, categoria))
     conn.commit()
 
+def borrar_factura(fid):
+    c.execute("DELETE FROM facturas WHERE id=?", (fid,))
+    conn.commit()
+
 # ==========================
 # DATOS
 # ==========================
@@ -102,23 +111,37 @@ total = df["monto"].sum() if not df.empty else 0
 cantidad = len(df)
 
 # ==========================
-# KPIs
+# LAYOUT PRINCIPAL
 # ==========================
-col1, col2 = st.columns(2)
-with col1:
-    st.markdown(f"<div class='card'><h4>💰 Gasto Total</h4><h2>${total:,.0f}</h2></div>", unsafe_allow_html=True)
-with col2:
-    st.markdown(f"<div class='card'><h4>📄 Facturas</h4><h2>{cantidad}</h2></div>", unsafe_allow_html=True)
+col1, col2 = st.columns([1,1])
 
-# ==========================
-# SUBIDA
-# ==========================
-col1, col2 = st.columns(2)
-imagen = None
+# KPIs + HISTORIAL (arriba a la derecha)
+with col2:
+    st.markdown(f"<div class='card'><h4>💰 Gasto Total</h4><h2>${total:,.0f}</h2></div>", unsafe_allow_html=True)
+    st.markdown(f"<div class='card'><h4>📄 Facturas</h4><h2>{cantidad}</h2></div>", unsafe_allow_html=True)
+    st.markdown('<div class="card"><h4>📄 Historial</h4>', unsafe_allow_html=True)
+    if not df.empty:
+        for _, row in df.iterrows():
+            cols = st.columns([3,2,2,2,1])
+            cols[0].write(row["entidad"].title())
+            cols[1].write(row["fecha"])
+            cols[2].write(f"${row['monto']:,.0f}")
+            cols[3].write(row["categoria"].title())
+            if cols[4].button("🗑️", key=f"del_{row['id']}"):
+                if st.confirm(f"¿Seguro que deseas borrar la factura de {row['entidad']}?"):
+                    borrar_factura(row["id"])
+                    st.experimental_rerun()
+        st.bar_chart(df.groupby("categoria")["monto"].sum())
+    else:
+        st.info("Sin registros aún")
+    st.markdown('</div>', unsafe_allow_html=True)
+
+# SUBIDA + RESULTADO IA (izquierda)
 with col1:
-    st.markdown('<div class="card">', unsafe_allow_html=True)
-    opcion = st.radio("Método", ["Subir imagen", "Tomar foto"])
-    if opcion == "Subir imagen":
+    st.markdown('<div class="card"><h4>📤 Subir Recibo</h4>', unsafe_allow_html=True)
+    metodo = st.radio("Selecciona método", ["Archivo", "Foto"])
+    imagen = None
+    if metodo == "Archivo":
         file = st.file_uploader("Selecciona imagen", type=["jpg","png","jpeg"])
         if file:
             imagen = Image.open(file)
@@ -128,14 +151,8 @@ with col1:
         if foto:
             imagen = Image.open(foto)
             st.image(imagen, use_container_width=True)
-    st.markdown('</div>', unsafe_allow_html=True)
 
-# ==========================
-# RESULTADO IA
-# ==========================
-entidad, fecha, monto, categoria = "—", "—", 0, "—"
-with col2:
-    if imagen and st.button("Analizar y Guardar"):
+    if imagen and st.button("Analizar Factura"):
         if not model:
             st.error("API no disponible")
         else:
@@ -150,42 +167,15 @@ with col2:
                 categoria = data.get("categoria","Otros")
                 guardar(entidad, fecha, monto, categoria)
                 st.success("✅ Guardado correctamente")
-            except Exception as e:
-                st.warning("⚠️ Límite de uso alcanzado o error en la API. Intenta de nuevo en unos segundos.")
-
-    st.markdown(f"""
-    <div class="card">
-        <h4>📄 Datos detectados</h4>
-        <p><b>Entidad:</b> {entidad.title()}</p>
-        <p><b>Fecha:</b> {fecha}</p>
-        <p><b>Monto:</b> ${float(monto):,.0f}</p>
-        <p><b>Categoría:</b> {categoria.title()}</p>
-    </div>
-    """, unsafe_allow_html=True)
-
-# ==========================
-# HISTORIAL
-# ==========================
-col1, col2 = st.columns(2)
-with col1:
-    st.markdown('<div class="card"><h4>📄 Historial</h4>', unsafe_allow_html=True)
-    if not df.empty:
-        df_display = df.copy()
-        df_display.rename(columns={
-            "entidad": "Entidad",
-            "fecha": "Fecha",
-            "monto": "Monto",
-            "categoria": "Categoría"
-        }, inplace=True)
-        df_display["Entidad"] = df_display["Entidad"].str.title()
-        df_display["Categoría"] = df_display["Categoría"].str.title()
-        st.dataframe(df_display, use_container_width=True)
-    else:
-        st.info("Sin registros aún")
-    st.markdown('</div>', unsafe_allow_html=True)
-
-with col2:
-    st.markdown('<div class="card"><h4>📊 Gastos por categoría</h4>', unsafe_allow_html=True)
-    if not df.empty:
-        st.bar_chart(df.groupby("categoria")["monto"].sum())
+                st.markdown(f"""
+                <div class="card">
+                    <h4>📄 Datos detectados</h4>
+                    <p><b>Entidad:</b> {entidad.title()}</p>
+                    <p><b>Fecha:</b> {fecha}</p>
+                    <p><b>Monto:</b> ${float(monto):,.0f}</p>
+                    <p><b>Categoría:</b> {categoria.title()}</p>
+                </div>
+                """, unsafe_allow_html=True)
+            except Exception:
+                st.warning("⚠️ Error o límite de uso alcanzado. Intenta de nuevo en unos segundos.")
     st.markdown('</div>', unsafe_allow_html=True)
