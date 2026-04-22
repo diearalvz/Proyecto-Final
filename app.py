@@ -128,9 +128,21 @@ with col2:
             cols[2].write(f"${row['monto']:,.0f}")
             cols[3].write(row["categoria"].title())
             if cols[4].button("🗑️", key=f"del_{row['id']}"):
-                if st.confirm(f"¿Seguro que deseas borrar la factura de {row['entidad']}?"):
-                    borrar_factura(row["id"])
-                    st.experimental_rerun()
+                st.session_state["confirm_delete"] = row["id"]
+
+        # Confirmación de borrado
+        if "confirm_delete" in st.session_state:
+            fid = st.session_state["confirm_delete"]
+            st.warning(f"¿Seguro que deseas borrar la factura ID {fid}?")
+            colA, colB = st.columns(2)
+            if colA.button("✅ Sí, borrar", key="yes_delete"):
+                borrar_factura(fid)
+                st.success("Factura eliminada correctamente.")
+                del st.session_state["confirm_delete"]
+                st.experimental_rerun()
+            if colB.button("❌ Cancelar", key="cancel_delete"):
+                del st.session_state["confirm_delete"]
+
         st.bar_chart(df.groupby("categoria")["monto"].sum())
     else:
         st.info("Sin registros aún")
