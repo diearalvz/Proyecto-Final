@@ -104,7 +104,7 @@ conn.commit()
 if "usuario" not in st.session_state:
     st.session_state["usuario"] = ""
 
-st.session_state["usuario"] = st.text_input("👤 Ingresa tu usuario o correo:")
+st.session_state["usuario"] = st.text_input("👤 Usuario:")
 
 if not st.session_state["usuario"]:
     st.warning("Por favor ingresa tu usuario para continuar.")
