@@ -98,7 +98,7 @@ conn.commit()
 if "usuario" not in st.session_state:
     st.session_state["usuario"] = ""
 
-st.session_state["usuario"] = st.text_input("👤 Ingresa tu usuario o correo:")
+st.session_state["usuario"] = st.text_input("👤 Usuario:")
 
 if not st.session_state["usuario"]:
     st.warning("Por favor ingresa tu usuario para continuar.")
@@ -107,19 +107,19 @@ if not st.session_state["usuario"]:
 # ==========================
 # FUNCIONES
 # ==========================
-def guardar_factura(entidad, fecha, monto, categoria):
+def guardar_factura(Entidad, Fecha, Monto, Categoria):
     c.execute('''
         SELECT * FROM facturas
         WHERE usuario=? AND entidad=? AND fecha=? AND monto=?
-    ''', (st.session_state["usuario"], entidad, fecha, monto))
-    duplicado = c.fetchone()
-    if duplicado:
+    ''', (st.session_state["usuario"], Entidad, Fecha, Monto))
+    Duplicado = c.fetchone()
+    if Duplicado:
         st.warning("⚠️ Factura duplicada detectada.")
     else:
         c.execute('''
             INSERT INTO facturas (usuario, entidad, fecha, monto, categoria)
             VALUES (?, ?, ?, ?, ?)
-        ''', (st.session_state["usuario"], entidad, fecha, monto, categoria))
+        ''', (st.session_state["usuario"], Entidad, Fecha, Monto, Categoria))
         conn.commit()
         st.success("✅ Factura guardada en tu historial.")
 
