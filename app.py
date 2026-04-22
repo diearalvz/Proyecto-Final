@@ -32,11 +32,6 @@ st.markdown(
         margin-top: 0; margin-bottom: 1em;
     }
     h2, h3 { color: #FFD700; }
-    .stMetric {
-        background-color: #1a1a1a; border-radius: 6px; padding: 0.4em;
-        font-size: 0.9em;
-        box-shadow: 0 0 6px rgba(255, 215, 0, 0.3);
-    }
     </style>
     """,
     unsafe_allow_html=True
@@ -47,8 +42,8 @@ st.markdown(
 # ==========================
 st.markdown(
     """
-    <div class="titulo-principal">FactuTrack</div>
-    <div class="subtitulo">De recibos a datos útiles con IA</div>
+    <div class="titulo-principal">💰 FactuTrack</div>
+    <div class="subtitulo">De recibos a datos útiles</div>
     """,
     unsafe_allow_html=True
 )
@@ -140,7 +135,7 @@ def mostrar_historial():
         total = df["Monto"].sum()
         st.subheader("🕓 Historial de Facturas")
         facturas_a_borrar = []
-        # Mostrar tabla con checkbox en primera columna
+        # Tabla con checkbox en primera columna
         cols = st.columns([1, 3, 2, 2, 2])
         cols[0].write("Borrar")
         cols[1].write("Entidad")
@@ -175,7 +170,7 @@ with col1:
     uploaded_file = st.file_uploader("Arrastra o sube una imagen (JPG, PNG)", type=['png', 'jpg', 'jpeg'])
     if uploaded_file:
         imagen = Image.open(uploaded_file)
-        st.image(imagen, caption='Recibo subido', width=250)  # Imagen más pequeña
+        st.image(imagen, caption='Recibo subido', width=250)
         if st.button("Analizar Factura"):
             with st.spinner("Leyendo factura..."):
                 prompt = """
@@ -191,12 +186,11 @@ with col1:
                         texto = texto.strip("`").replace("json", "").strip()
                     datos = eval(texto)
                     st.success("✅ Datos extraídos")
-                    # Métricas más compactas
-                    colA, colB, colC, colD = st.columns(4)
-                    colA.metric("🏢 Entidad", datos["entidad"])
-                    colB.metric("📅 Fecha", datos["fecha"])
-                    colC.metric("💵 Monto", datos["monto"])
-                    colD.metric("📂 Categoría", datos["categoria"])
+
+                    # Mostrar datos en mini tabla temporal
+                    df_temp = pd.DataFrame([datos], columns=["entidad", "fecha", "monto", "categoria"])
+                    st.table(df_temp)
+
                     guardar_factura(datos["entidad"], datos["fecha"], datos["monto"], datos["categoria"])
                 except Exception as e:
                     st.error(f"Error al procesar la imagen: {e}")
