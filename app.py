@@ -21,13 +21,13 @@ st.markdown(
         border-radius: 8px; padding: 0.5em 1em;
     }
     .titulo-principal {
-        font-size: 2.5em; color: #FFD700; text-align: center;
+        font-size: 2em; color: #FFD700; text-align: center;
         text-shadow: 0 0 15px #FFD700, 0 0 30px #FFA500;
         font-weight: bold; margin-bottom: 0.1em;
         font-family: 'Montserrat', sans-serif;
     }
     .subtitulo {
-        font-size: 1.2em; color: #FFD700; text-align: center;
+        font-size: 1.1em; color: #FFD700; text-align: center;
         font-style: italic; font-family: 'Georgia', serif;
         margin-top: 0; margin-bottom: 1em;
     }
@@ -138,7 +138,7 @@ def mostrar_historial():
             st.warning(f"Error al convertir montos: {e}")
         total = df["Monto"].sum()
         st.subheader("🕓 Historial de Facturas")
-        st.dataframe(df, use_container_width=True, height=300)
+        st.dataframe(df, use_container_width=True, height=250)
         st.info(f"💵 Total acumulado: {total:,.2f}")
         facturas_a_borrar = []
         for _, row in df.iterrows():
@@ -153,39 +153,36 @@ def mostrar_historial():
         st.info("No tienes facturas registradas aún.")
 
 # ==========================
-# INTERFAZ PRINCIPAL CON TABS
+# INTERFAZ PRINCIPAL (UNA SOLA VISTA)
 # ==========================
-tab1, tab2 = st.tabs(["📤 Subir Recibo", "🕓 Historial"])
+st.subheader("📤 Sube tu recibo")
+uploaded_file = st.file_uploader("Arrastra o sube una imagen (JPG, PNG)", type=['png', 'jpg', 'jpeg'])
+if uploaded_file:
+    imagen = Image.open(uploaded_file)
+    st.image(imagen, caption='Recibo subido', width=280)  # Imagen más pequeña
+    if st.button("Analizar Factura"):
+        with st.spinner("Leyendo factura..."):
+            prompt = """
+            Analiza esta factura y devuelve la información en formato JSON válido.
+            Usa estas claves exactas: "entidad", "fecha", "monto", "categoria".
+            Si no encuentras un dato, pon "No detectado".
+            Devuelve solo el JSON, sin texto adicional.
+            """
+            try:
+                response = model.generate_content([prompt, imagen])
+                texto = response.text.strip()
+                if texto.startswith("```"):
+                    texto = texto.strip("`").replace("json", "").strip()
+                datos = eval(texto)
+                st.success("✅ Datos extraídos")
+                colA, colB, colC, colD = st.columns(4)
+                colA.metric("🏢 Entidad", datos["entidad"])
+                colB.metric("📅 Fecha", datos["fecha"])
+                colC.metric("💵 Monto", datos["monto"])
+                colD.metric("📂 Categoría", datos["categoria"])
+                guardar_factura(datos["entidad"], datos["fecha"], datos["monto"], datos["categoria"])
+            except Exception as e:
+                st.error(f"Error al procesar la imagen: {e}")
 
-with tab1:
-    st.subheader("📤 Sube tu recibo")
-    uploaded_file = st.file_uploader("Arrastra o sube una imagen (JPG, PNG)", type=['png', 'jpg', 'jpeg'])
-    if uploaded_file:
-        imagen = Image.open(uploaded_file)
-        st.image(imagen, caption='Recibo subido', width=300)
-        if st.button("Analizar Factura"):
-            with st.spinner("Leyendo factura..."):
-                prompt = """
-                Analiza esta factura y devuelve la información en formato JSON válido.
-                Usa estas claves exactas: "entidad", "fecha", "monto", "categoria".
-                Si no encuentras un dato, pon "No detectado".
-                Devuelve solo el JSON, sin texto adicional.
-                """
-                try:
-                    response = model.generate_content([prompt, imagen])
-                    texto = response.text.strip()
-                    if texto.startswith("```"):
-                        texto = texto.strip("`").replace("json", "").strip()
-                    datos = eval(texto)
-                    st.success("✅ Datos extraídos")
-                    colA, colB, colC, colD = st.columns(4)
-                    colA.metric("🏢 Entidad", datos["entidad"])
-                    colB.metric("📅 Fecha", datos["fecha"])
-                    colC.metric("💵 Monto", datos["monto"])
-                    colD.metric("📂 Categoría", datos["categoria"])
-                    guardar_factura(datos["entidad"], datos["fecha"], datos["monto"], datos["categoria"])
-                except Exception as e:
-                    st.error(f"Error al procesar la imagen: {e}")
-
-with tab2:
-    mostrar_historial()
+# Mostrar historial debajo, en la misma vista
+mostrar_historial()
