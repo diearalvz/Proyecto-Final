@@ -32,29 +32,6 @@ body {
     font-family: 'Montserrat', sans-serif;
 }
 
-.header {
-    display:flex;
-    align-items:center;
-    margin-bottom:20px;
-}
-
-.header img {
-    height:60px;
-    margin-right:15px;
-}
-
-.header h2 {
-    color: var(--color-secundario);
-    font-weight:700;
-    margin:0;
-}
-
-.header p {
-    color: var(--texto-secundario);
-    margin:0;
-    font-size:14px;
-}
-
 .card {
     border-radius:10px;
     padding:1.2em;
@@ -66,17 +43,15 @@ body {
 """, unsafe_allow_html=True)
 
 # ==========================
-# HEADER CON LOGO
+# HEADER CENTRADO CON LOGO Y TITULO
 # ==========================
-col_logo, col_title = st.columns([1,5])
-with col_logo:
-    if os.path.exists("logo_factutrack.png"):
-        st.image("logo_factutrack.png", use_container_width=False)
-    else:
-        st.write("📊")  # fallback seguro si no está el logo
-with col_title:
-    st.markdown("<h2>FactuTrack</h2>", unsafe_allow_html=True)
-    st.markdown("<p>Tus gastos, simples y claros</p>", unsafe_allow_html=True)
+st.markdown("""
+<div style='text-align:center; margin-bottom:30px;'>
+    <img src='logo_factutrack.png' style='height:80px;'>
+    <h1 style='color:#6C63FF; font-size:48px; font-weight:800; margin:0;'>FactuTrack</h1>
+    <p style='color:#6C757D; font-size:20px; margin:0;'>Facturas claras, finanzas inteligentes</p>
+</div>
+""", unsafe_allow_html=True)
 
 st.markdown("---")
 
