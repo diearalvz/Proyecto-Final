@@ -43,13 +43,27 @@ body {
 """, unsafe_allow_html=True)
 
 # ==========================
-# HEADER CENTRADO CON LOGO Y TITULO
+# HEADER CENTRADO CON ESTILO PREMIUM
 # ==========================
 st.markdown("""
-<div style='text-align:center; margin-bottom:30px;'>
-    <img src='logo_factutrack.png' style='height:80px;'>
-    <h1 style='color:#6C63FF; font-size:48px; font-weight:800; margin:0;'>FactuTrack</h1>
-    <p style='color:#6C757D; font-size:20px; margin:0;'>Facturas claras, finanzas inteligentes</p>
+<div style='text-align:center; margin-bottom:40px;'>
+    <img src='logo_factutrack.png' style='height:90px; margin-bottom:10px;'>
+    <h1 style='
+        font-size:52px;
+        font-weight:800;
+        background: linear-gradient(90deg, #1E1E2F, #6C63FF);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        text-shadow: 2px 2px 6px rgba(0,0,0,0.3);
+        margin:0;
+    '>FactuTrack</h1>
+    <p style='
+        font-size:22px;
+        font-style:italic;
+        color:#FFD700;
+        text-shadow: 1px 1px 4px rgba(0,0,0,0.4);
+        margin-top:5px;
+    '>Facturas claras, finanzas inteligentes</p>
 </div>
 """, unsafe_allow_html=True)
 
