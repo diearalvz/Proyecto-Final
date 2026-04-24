@@ -39,7 +39,7 @@ if "usuario" not in st.session_state or not st.session_state["usuario"]:
     usuario = st.text_input("👤 Ingresa tu nombre")
     if st.button("Ingresar") and usuario:
         st.session_state["usuario"] = usuario
-        st.rerun()   # refresca inmediatamente al primer clic
+        st.rerun()
     st.stop()
 
 usuario = st.session_state["usuario"]
@@ -99,7 +99,7 @@ with col1:
     imagen = st.file_uploader("Selecciona imagen", type=["jpg","png","jpeg"])
     if imagen:
         img = Image.open(imagen)
-        st.image(img, width=400)  # compacto
+        st.image(img, width=400)
         if st.button("Analizar Factura"):
             if not model:
                 st.error("API no disponible. Verifica tu GOOGLE_API_KEY y modelos habilitados.")
@@ -124,7 +124,7 @@ with col1:
                     # Refrescar DataFrame inmediatamente
                     df = obtener_df()
 
-                    # Mostrar datos extraídos con estilo compacto
+                    # Mostrar datos extraídos compactos
                     st.subheader("📑 Datos extraídos")
                     colX = st.columns(4)
                     colX[0].markdown(f"<div class='card small-card'><h5>🏢 Entidad</h5><p>{entidad}</p></div>", unsafe_allow_html=True)
@@ -145,14 +145,13 @@ with col2:
     categoria_principal = df.groupby("categoria")["monto"].sum().idxmax() if not df.empty else "—"
 
     colA, colB, colC = st.columns(3)
-    colA.markdown(f"<div class='card'><h4>💰 Total</h4><h2>${total:,.0f}</h2></div>", unsafe_allow_html=True)
-    colB.markdown(f"<div class='card'><h4>📄 Facturas</h4><h2>{cantidad}</h2></div>", unsafe_allow_html=True)
-    colC.markdown(f"<div class='card'><h4>📊 Categoría</h4><h2>{categoria_principal}</h2></div>", unsafe_allow_html=True)
+    colA.markdown(f"<div class='card small-card'><h5>💰 Total</h5><p>${total:,.0f}</p></div>", unsafe_allow_html=True)
+    colB.markdown(f"<div class='card small-card'><h5>📄 Facturas</h5><p>{cantidad}</p></div>", unsafe_allow_html=True)
+    colC.markdown(f"<div class='card small-card'><h5>📊 Categoría</h5><p>{categoria_principal}</p></div>", unsafe_allow_html=True)
 
     st.subheader("🕓 Mis facturas recientes")
-    df = obtener_df()  # refrescar después de inserción
+    df = obtener_df()
     if not df.empty:
-        # Tabla estilizada con botón eliminar
         for _, row in df.iterrows():
             cols = st.columns([0.25, 0.25, 0.25, 0.15, 0.1])
             cols[0].write(f"**{row['entidad']}**")
