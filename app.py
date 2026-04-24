@@ -13,7 +13,7 @@ import google.generativeai as genai
 st.set_page_config(page_title="FactuTrack", layout="wide")
 
 # ==========================
-# CSS con paleta oficial
+# CSS con paleta oficial + fondo con textura sutil
 # ==========================
 st.markdown("""
 <style>
@@ -22,12 +22,14 @@ st.markdown("""
     --color-secundario: #6C63FF;
     --color-acento: #FFD700;
     --color-claro: #F8F9FA;
-    --texto-principal: #333333;
-    --texto-secundario: #6C757D;
+    --texto-principal: #F8F9FA;
+    --texto-secundario: #CCCCCC;
 }
 
 body {
-    background-color: var(--color-claro);
+    background-color: #1E1E2F;
+    background-image: radial-gradient(#2c2c3a 1px, transparent 1px);
+    background-size: 20px 20px;
     color: var(--texto-principal);
     font-family: 'Montserrat', sans-serif;
 }
@@ -37,7 +39,7 @@ body {
     padding:1.2em;
     margin-bottom:1em;
     text-align:center;
-    box-shadow:0 2px 8px rgba(0,0,0,0.1);
+    box-shadow:0 2px 8px rgba(0,0,0,0.3);
 }
 </style>
 """, unsafe_allow_html=True)
@@ -51,17 +53,17 @@ st.markdown("""
     <h1 style='
         font-size:52px;
         font-weight:800;
-        background: linear-gradient(90deg, #1E1E2F, #6C63FF);
+        background: linear-gradient(90deg, #FFD700, #6C63FF);
         -webkit-background-clip: text;
         -webkit-text-fill-color: transparent;
-        text-shadow: 2px 2px 6px rgba(0,0,0,0.3);
+        text-shadow: 2px 2px 6px rgba(0,0,0,0.6);
         margin:0;
     '>FactuTrack</h1>
     <p style='
         font-size:22px;
         font-style:italic;
         color:#FFD700;
-        text-shadow: 1px 1px 4px rgba(0,0,0,0.4);
+        text-shadow: 1px 1px 4px rgba(0,0,0,0.8);
         margin-top:5px;
     '>Facturas claras, finanzas inteligentes</p>
 </div>
@@ -82,7 +84,7 @@ if not st.session_state["usuario"]:
     st.stop()
 
 usuario = st.session_state["usuario"]
-st.markdown(f"### ¡Hola, {usuario}! 👋 Aquí tienes un resumen simple de tus gastos.")
+st.markdown(f"### ¡Hola, {usuario}! Aquí tienes un resumen simple de tus gastos.")
 
 # ==========================
 # API IA
