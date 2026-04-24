@@ -48,14 +48,24 @@ usuario = st.session_state["usuario"]
 st.markdown(f"### ¡Hola, {usuario}! 👋 Aquí tienes un resumen simple de tus gastos.")
 
 # ==========================
-# API IA
+# API IA - DETECCIÓN AUTOMÁTICA DE MODELO
 # ==========================
+model = None
 try:
     genai.configure(api_key=st.secrets["GOOGLE_API_KEY"])
-    model = genai.GenerativeModel("gemini-1.5-flash")
-except:
-    model = None
-    st.warning("⚠️ API no configurada")
+    modelos = genai.list_models()
+    modelo_valido = None
+    for m in modelos:
+        if "generateContent" in m.supported_generation_methods:
+            modelo_valido = m.name
+            break
+    if modelo_valido:
+        model = genai.GenerativeModel(modelo_valido)
+        st.info(f"✅ Usando modelo: {modelo_valido}")
+    else:
+        st.error("⚠️ No se encontró ningún modelo válido para generateContent.")
+except Exception as e:
+    st.error(f"⚠️ Error al configurar la API: {e}")
 
 # ==========================
 # DB
@@ -99,7 +109,7 @@ with col1:
         st.image(img, width=400)  # compacto
         if st.button("Analizar Factura"):
             if not model:
-                st.error("API no disponible. Verifica tu GOOGLE_API_KEY en secrets.toml")
+                st.error("API no disponible. Verifica tu GOOGLE_API_KEY y modelos habilitados.")
             else:
                 try:
                     prompt = "Devuelve SOLO JSON con: entidad, fecha, monto, categoria"
