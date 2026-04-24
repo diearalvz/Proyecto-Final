@@ -121,13 +121,16 @@ with col1:
                               (usuario, entidad, fecha, monto, categoria))
                     conn.commit()
 
-                    # Mostrar datos extraídos con estilo premium
+                    # Refrescar DataFrame inmediatamente
+                    df = obtener_df()
+
+                    # Mostrar datos extraídos con estilo compacto
                     st.subheader("📑 Datos extraídos")
                     colX = st.columns(4)
-                    colX[0].markdown(f"<div class='card'><h4>🏢 Entidad</h4><h3>{entidad}</h3></div>", unsafe_allow_html=True)
-                    colX[1].markdown(f"<div class='card'><h4>📅 Fecha</h4><h3>{fecha}</h3></div>", unsafe_allow_html=True)
-                    colX[2].markdown(f"<div class='card'><h4>💵 Monto</h4><h3>${monto:,.0f}</h3></div>", unsafe_allow_html=True)
-                    colX[3].markdown(f"<div class='card'><h4>📊 Categoría</h4><h3>{categoria}</h3></div>", unsafe_allow_html=True)
+                    colX[0].markdown(f"<div class='card small-card'><h5>🏢 Entidad</h5><p>{entidad}</p></div>", unsafe_allow_html=True)
+                    colX[1].markdown(f"<div class='card small-card'><h5>📅 Fecha</h5><p>{fecha}</p></div>", unsafe_allow_html=True)
+                    colX[2].markdown(f"<div class='card small-card'><h5>💵 Monto</h5><p>${monto:,.0f}</p></div>", unsafe_allow_html=True)
+                    colX[3].markdown(f"<div class='card small-card'><h5>📊 Categoría</h5><p>{categoria}</p></div>", unsafe_allow_html=True)
 
                     st.success("✅ Factura registrada correctamente")
 
@@ -156,7 +159,7 @@ with col2:
             cols[1].write(row['fecha'])
             cols[2].write(f"${row['monto']:,.0f}")
             cols[3].write(row['categoria'])
-            if cols[4].button("🗑️", key=f"del_{row['id']}"):
+            if cols[4].button("🗑️ Eliminar", key=f"del_{row['id']}"):
                 c.execute("DELETE FROM facturas WHERE id=?", (row['id'],))
                 conn.commit()
                 st.rerun()
