@@ -99,11 +99,17 @@ with col1:
         st.image(img, width=400)  # compacto
         if st.button("Analizar Factura"):
             if not model:
-                st.error("API no disponible")
+                st.error("API no disponible. Verifica tu GOOGLE_API_KEY en secrets.toml")
             else:
                 try:
                     prompt = "Devuelve SOLO JSON con: entidad, fecha, monto, categoria"
                     r = model.generate_content([prompt, img])
+
+                    # Mostrar salida cruda del modelo para depuración
+                    st.write("📄 Respuesta completa del modelo:")
+                    st.code(r.text)
+
+                    # Limpiar y parsear JSON
                     texto = re.sub(r"```json|```","", r.text).strip()
                     data = json.loads(texto)
 
@@ -118,8 +124,9 @@ with col1:
                     conn.commit()
 
                     st.success(f"✅ Factura registrada: {entidad} — {fecha} — ${monto:,.0f} — {categoria}")
-                except Exception:
-                    st.warning("⚠️ Error al analizar la factura. Intenta de nuevo.")
+
+                except Exception as e:
+                    st.error(f"⚠️ Error al analizar la factura: {e}")
 
 # RESUMEN + HISTORIAL (derecha)
 with col2:
