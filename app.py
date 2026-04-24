@@ -20,7 +20,7 @@ if os.path.exists("style.css"):
         st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
 
 # ==========================
-# HEADER CENTRADO CON ESTILO PREMIUM
+# HEADER PREMIUM
 # ==========================
 st.markdown("""
 <div class='header-premium'>
@@ -33,7 +33,7 @@ st.markdown("""
 st.markdown("---")
 
 # ==========================
-# LOGIN PERSISTENTE
+# LOGIN
 # ==========================
 if "usuario" not in st.session_state:
     st.session_state["usuario"] = ""
@@ -54,18 +54,13 @@ model = None
 try:
     genai.configure(api_key=st.secrets["GOOGLE_API_KEY"])
     modelos = genai.list_models()
-    modelo_valido = None
     for m in modelos:
         if "generateContent" in m.supported_generation_methods:
-            modelo_valido = m.name
+            model = genai.GenerativeModel(m.name)
             break
-    if modelo_valido:
-        model = genai.GenerativeModel(modelo_valido)
-        st.info(f"✅ Usando modelo: {modelo_valido}")
-    else:
-        st.error("⚠️ No se encontró ningún modelo válido para generateContent.")
-except Exception as e:
-    st.error(f"⚠️ Error al configurar la API: {e}")
+except:
+    model = None
+    st.warning("⚠️ API no configurada o sin modelos válidos")
 
 # ==========================
 # DB
@@ -86,7 +81,7 @@ conn.commit()
 
 def obtener_df():
     df = pd.read_sql_query(
-        "SELECT entidad, fecha, monto, categoria FROM facturas WHERE usuario=? ORDER BY rowid DESC",
+        "SELECT id, entidad, fecha, monto, categoria FROM facturas WHERE usuario=? ORDER BY rowid DESC",
         conn, params=(usuario,)
     )
     if not df.empty:
@@ -115,11 +110,6 @@ with col1:
                     prompt = "Devuelve SOLO JSON con: entidad, fecha, monto, categoria"
                     r = model.generate_content([prompt, img])
 
-                    # Mostrar salida cruda del modelo para depuración
-                    st.write("📄 Respuesta completa del modelo:")
-                    st.code(r.text)
-
-                    # Limpiar y parsear JSON
                     texto = re.sub(r"```json|```","", r.text).strip()
                     data = json.loads(texto)
 
@@ -133,7 +123,15 @@ with col1:
                               (usuario, entidad, fecha, monto, categoria))
                     conn.commit()
 
-                    st.success(f"✅ Factura registrada: {entidad} — {fecha} — ${monto:,.0f} — {categoria}")
+                    # Mostrar datos extraídos con estilo premium
+                    st.subheader("📑 Datos extraídos")
+                    colX = st.columns(4)
+                    colX[0].markdown(f"<div class='card'><h4>🏢 Entidad</h4><h3>{entidad}</h3></div>", unsafe_allow_html=True)
+                    colX[1].markdown(f"<div class='card'><h4>📅 Fecha</h4><h3>{fecha}</h3></div>", unsafe_allow_html=True)
+                    colX[2].markdown(f"<div class='card'><h4>💵 Monto</h4><h3>${monto:,.0f}</h3></div>", unsafe_allow_html=True)
+                    colX[3].markdown(f"<div class='card'><h4>📊 Categoría</h4><h3>{categoria}</h3></div>", unsafe_allow_html=True)
+
+                    st.success("✅ Factura registrada correctamente")
 
                 except Exception as e:
                     st.error(f"⚠️ Error al analizar la factura: {e}")
@@ -153,6 +151,16 @@ with col2:
     st.subheader("🕓 Mis facturas recientes")
     df = obtener_df()  # refrescar después de inserción
     if not df.empty:
-        st.dataframe(df.head(5))
+        # Tabla estilizada con botón eliminar
+        for _, row in df.iterrows():
+            cols = st.columns([0.25, 0.25, 0.25, 0.15, 0.1])
+            cols[0].write(f"**{row['entidad']}**")
+            cols[1].write(row['fecha'])
+            cols[2].write(f"${row['monto']:,.0f}")
+            cols[3].write(row['categoria'])
+            if cols[4].button("🗑️ Eliminar", key=f"del_{row['id']}"):
+                c.execute("DELETE FROM facturas WHERE id=?", (row['id'],))
+                conn.commit()
+                st.experimental_rerun()
     else:
         st.info("Sin registros aún")
