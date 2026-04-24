@@ -33,19 +33,17 @@ st.markdown("""
 st.markdown("---")
 
 # ==========================
-# LOGIN
+# LOGIN (corregido)
 # ==========================
-if "usuario" not in st.session_state:
-    st.session_state["usuario"] = ""
-
-if not st.session_state["usuario"]:
+if "usuario" not in st.session_state or not st.session_state["usuario"]:
     usuario = st.text_input("👤 Ingresa tu nombre")
-    if st.button("Ingresar"):
+    if st.button("Ingresar") and usuario:
         st.session_state["usuario"] = usuario
+        st.rerun()   # refresca inmediatamente al primer clic
     st.stop()
 
 usuario = st.session_state["usuario"]
-st.markdown(f"### ¡Hola, {usuario}! Aquí tienes un resumen simple de tus gastos.")
+st.markdown(f"### ¡Hola, {usuario}! 👋 Aquí tienes un resumen simple de tus gastos.")
 
 # ==========================
 # API IA - DETECCIÓN AUTOMÁTICA DE MODELO
@@ -161,6 +159,6 @@ with col2:
             if cols[4].button("🗑️", key=f"del_{row['id']}"):
                 c.execute("DELETE FROM facturas WHERE id=?", (row['id'],))
                 conn.commit()
-                st.experimental_rerun()
+                st.rerun()
     else:
         st.info("Sin registros aún")
