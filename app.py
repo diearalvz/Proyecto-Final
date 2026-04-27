@@ -33,7 +33,7 @@ st.markdown("""
 st.markdown("---")
 
 # ==========================
-# LOGIN (corregido)
+# LOGIN
 # ==========================
 if "usuario" not in st.session_state or not st.session_state["usuario"]:
     usuario = st.text_input("👤 Ingresa tu nombre")
@@ -43,10 +43,10 @@ if "usuario" not in st.session_state or not st.session_state["usuario"]:
     st.stop()
 
 usuario = st.session_state["usuario"]
-st.markdown(f"### ¡Hola, {usuario}! Aquí tienes un resumen simple de tus gastos.")
+st.markdown(f"### ¡Hola, {usuario}! 👋 Aquí tienes un resumen simple de tus gastos.")
 
 # ==========================
-# API IA - DETECCIÓN AUTOMÁTICA DE MODELO
+# API IA
 # ==========================
 model = None
 try:
@@ -93,7 +93,7 @@ df = obtener_df()
 # ==========================
 col1, col2 = st.columns([1,1])
 
-# SUBIR RECIBO (izquierda)
+# SUBIR RECIBO
 with col1:
     st.subheader("📤 Subir recibo")
     imagen = st.file_uploader("Selecciona imagen", type=["jpg","png","jpeg"])
@@ -111,17 +111,36 @@ with col1:
                     texto = re.sub(r"```json|```","", r.text).strip()
                     data = json.loads(texto)
 
-                    entidad = data.get("entidad","No detectado")
-                    fecha = data.get("fecha","No detectado")
-                    monto = data.get("monto",0)
-                    categoria = data.get("categoria","Otros")
+                    # Conversión segura de tipos
+                    entidad = data.get("entidad", "No detectado")
+                    if isinstance(entidad, list):
+                        entidad = entidad[0] if entidad else "No detectado"
+                    entidad = str(entidad)
+
+                    fecha = data.get("fecha", "No detectado")
+                    if isinstance(fecha, list):
+                        fecha = fecha[0] if fecha else "No detectado"
+                    fecha = str(fecha)
+
+                    monto = data.get("monto", 0)
+                    if isinstance(monto, list):
+                        monto = monto[0] if monto else 0
+                    try:
+                        monto = float(monto)
+                    except:
+                        monto = 0.0
+
+                    categoria = data.get("categoria", "Otros")
+                    if isinstance(categoria, list):
+                        categoria = categoria[0] if categoria else "Otros"
+                    categoria = str(categoria)
 
                     # Guardar en DB
                     c.execute("INSERT INTO facturas (usuario, entidad, fecha, monto, categoria) VALUES (?,?,?,?,?)",
                               (usuario, entidad, fecha, monto, categoria))
                     conn.commit()
 
-                    # Refrescar DataFrame inmediatamente
+                    # Refrescar DataFrame
                     df = obtener_df()
 
                     # Mostrar datos extraídos compactos
@@ -137,7 +156,7 @@ with col1:
                 except Exception as e:
                     st.error(f"⚠️ Error al analizar la factura: {e}")
 
-# RESUMEN + HISTORIAL (derecha)
+# RESUMEN + HISTORIAL
 with col2:
     st.subheader("📊 Resumen mensual")
     total = df["monto"].sum() if not df.empty else 0
@@ -158,7 +177,7 @@ with col2:
             cols[1].write(row['fecha'])
             cols[2].write(f"${row['monto']:,.0f}")
             cols[3].write(row['categoria'])
-            if cols[4].button("🗑️", key=f"del_{row['id']}"):
+            if cols[4].button("🗑️ Eliminar", key=f"del_{row['id']}"):
                 c.execute("DELETE FROM facturas WHERE id=?", (row['id'],))
                 conn.commit()
                 st.rerun()
