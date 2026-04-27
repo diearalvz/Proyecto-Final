@@ -177,7 +177,7 @@ with col2:
             cols[1].write(row['fecha'])
             cols[2].write(f"${row['monto']:,.0f}")
             cols[3].write(row['categoria'])
-            if cols[4].button("🗑️ Eliminar", key=f"del_{row['id']}"):
+            if cols[4].button("🗑️", key=f"del_{row['id']}"):
                 c.execute("DELETE FROM facturas WHERE id=?", (row['id'],))
                 conn.commit()
                 st.rerun()
