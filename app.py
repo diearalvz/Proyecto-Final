@@ -43,7 +43,7 @@ if "usuario" not in st.session_state or not st.session_state["usuario"]:
     st.stop()
 
 usuario = st.session_state["usuario"]
-st.markdown(f"### ¡Hola, {usuario}! 👋 Aquí tienes un resumen simple de tus gastos.")
+st.markdown(f"### ¡Hola, {usuario}! Aquí tienes un resumen simple de tus gastos.")
 
 # ==========================
 # API IA
